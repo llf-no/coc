@@ -148,131 +148,143 @@
     <main class="flex-1 h-screen overflow-y-auto relative bg-[#f7f3f0]">
         
         <div id="tab-sheet" class="block w-full h-full relative">
-            <div class="p-3 md:p-6">
-                <div class="sticky top-0 z-40 px-3 md:px-5 border-b h-auto py-4 rounded-3xl mb-6 shadow-sm relative transition-all duration-300" id="header-container">
-                    <div class="flex flex-col w-full gap-3 transition-all duration-300" id="header-inner">
-                        
-                        <div class="flex flex-col md:flex-row items-center justify-between gap-3 border-b border-[#f0e9e4] pb-3" id="header-actions">
-                            <div class="flex flex-col md:flex-row items-center gap-4 w-full md:w-auto">
-                                <div class="text-center md:text-left shrink-0">
-                                    <h1 class="text-lg font-bold leading-tight text-[#5d534a]">☕ 探索者バックアップ</h1>
-                                    <p class="text-[#a89a8e] text-[10px] leading-tight font-medium">Iachara/Charaeno</p>
-                                </div>
-                                <div class="flex gap-2 flex-wrap justify-center">
-                                    <div class="relative group">
-                                        <button onclick="exportData()" class="btn-primary font-bold shadow-sm text-[11px]">📔 バックアップ作成</button>
-                                        <div class="absolute left-1/2 -translate-x-1/2 top-full mt-2 bg-[#5d534a] text-white text-[10px] px-3 py-2 rounded-xl whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 shadow-lg z-50">支援ツール専用のバックアップファイルを作成します</div>
-                                    </div>
-                                    <div class="relative group">
-                                        <button onclick="importBackup()" class="btn-secondary font-bold shadow-sm text-[11px]">♻️ 復元</button>
-                                        <div class="absolute left-1/2 -translate-x-1/2 top-full mt-2 bg-[#5d534a] text-white text-[10px] px-3 py-2 rounded-xl whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 shadow-lg z-50">【バックアップ作成】で作成したファイルを読み込みます</div>
-                                    </div>
-                                    <div class="relative group">
-                                        <button onclick="importTxtFile()" class="btn-accent font-bold shadow-sm text-[11px]">📄 いあきゃらTXT読込</button>
-                                        <div class="absolute left-1/2 -translate-x-1/2 top-full mt-2 bg-[#5d534a] text-white text-[10px] px-3 py-2 rounded-xl whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 shadow-lg z-50">【いあきゃらキャラシ→出力→ファイルに出力】のテキストを読み込みます</div>
-                                    </div>
-                                    <div class="relative group">
-                                        <button onclick="importCharaenoFile()" class="btn-accent font-bold shadow-sm text-[11px]">🌸 いあ/エノ読込</button>
-                                        <div class="absolute left-1/2 -translate-x-1/2 top-full mt-2 bg-[#5d534a] text-white text-[10px] px-3 py-2 rounded-xl whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 shadow-lg z-50">【いあきゃら/キャラエノ】のココフォリア用データを貼り付けます</div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div id="trash" class="hidden md:inline-flex shadow-sm shrink-0 ml-auto">🧸 削除</div>
+    <div class="p-3 md:p-6">
+        
+        <div class="sticky top-0 z-40 px-3 md:px-5 border-b h-auto py-4 rounded-3xl mb-6 shadow-sm relative transition-all duration-300" id="header-container">
+            <div class="flex flex-col w-full gap-3 transition-all duration-300" id="header-inner">
+                
+                <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3 border-b border-[#f0e9e4] pb-3" id="header-actions">
+                    <div class="flex items-center justify-between w-full lg:w-auto">
+                        <div class="text-left shrink-0">
+                            <h1 class="text-lg font-bold leading-tight text-[#5d534a]">☕ 探索者バックアップ</h1>
+                            <p class="text-[#a89a8e] text-[10px] leading-tight font-medium">Iachara/Charaeno</p>
                         </div>
-
-                        <div id="header-controls" class="flex items-start flex-wrap gap-3 w-full text-[10px] transition-opacity duration-300">
-                            
-                            <div class="flex items-center bg-[#f0e9e4] rounded-2xl px-3 py-1.5 gap-2 text-[#7d6f64] w-full sm:w-auto shrink-0">
-                                <span class="font-bold border-r border-[#dcd0c9] pr-2 whitespace-nowrap">Search</span>
-                                <input type="text" id="searchInput" oninput="render()" placeholder="名前・メモ検索..." class="bg-transparent outline-none text-xs w-full sm:w-32 md:w-40 placeholder:text-[#b7aaa0]">
-                            </div>
-
-                            <div class="flex items-center flex-wrap bg-[#f0e9e4] rounded-2xl px-3 py-1.5 gap-1 text-[#7d6f64] shrink-0">
-                                <span class="font-bold border-r border-[#dcd0c9] pr-2 mr-1 whitespace-nowrap">Gender</span>
-                                <button id="btn-gender-all" class="hover:text-[#d4a373] font-bold px-2 rounded-full whitespace-nowrap" onclick="setGenderFilter('')">全</button>
-                                <button id="btn-gender-male" class="hover:text-[#d4a373] px-2 rounded-full whitespace-nowrap" onclick="setGenderFilter('男性')">男</button>
-                                <button id="btn-gender-female" class="hover:text-[#d4a373] px-2 rounded-full whitespace-nowrap" onclick="setGenderFilter('女性')">女</button>
-                            </div>
-
-                            <div class="flex items-center flex-wrap bg-[#f0e9e4] rounded-2xl px-3 py-1.5 gap-2 text-[#7d6f64] shrink-0">
-                                <span class="font-bold border-r border-[#dcd0c9] pr-2 whitespace-nowrap">Tag</span>
-                                <button id="btn-tag-all" class="hover:text-[#d4a373] font-bold whitespace-nowrap px-1" onclick="setTagFilter('')">全</button>
-                                <div id="tagFilterContainer" class="flex flex-wrap gap-1 items-center"></div>
-                            </div>
-
-                            <div class="flex items-center flex-wrap bg-[#f0e9e4] rounded-2xl px-3 py-1.5 gap-1 text-[#7d6f64] shrink-0">
-                                <span class="font-bold border-r border-[#dcd0c9] pr-2 mr-1 hidden md:inline whitespace-nowrap">Sort</span>
-                                <button class="hover:text-[#d4a373] px-1.5 rounded-full whitespace-nowrap" onclick="setSort('age')" data-sort="age">年齢<span class="sort-icon"></span></button>
-                                <button class="hover:text-[#d4a373] px-1.5 rounded-full whitespace-nowrap" onclick="setSort('san')" data-sort="san">SAN</button>
-                                <button class="hover:text-[#d4a373] px-1.5 rounded-full whitespace-nowrap" onclick="setSort('str')" data-sort="str">STR</button>
-                                <button class="hover:text-[#d4a373] px-1.5 rounded-full whitespace-nowrap" onclick="setSort('dex')" data-sort="dex">DEX</button>
-                                <button class="hover:text-[#d4a373] px-1.5 rounded-full whitespace-nowrap" onclick="setSort('int')" data-sort="int">INT</button>
-                                <button class="hover:text-[#d4a373] px-1.5 rounded-full whitespace-nowrap" onclick="setSort('con')" data-sort="con">CON</button>
-                                <button class="hover:text-[#d4a373] px-1.5 rounded-full whitespace-nowrap" onclick="setSort('app')" data-sort="app">APP</button>
-                                <button class="hover:text-[#d4a373] px-1.5 rounded-full whitespace-nowrap" onclick="setSort('pow')" data-sort="pow">POW</button>
-                                <button class="hover:text-[#d4a373] px-1.5 rounded-full whitespace-nowrap" onclick="setSort('siz')" data-sort="siz">SIZ</button>
-                                <button class="hover:text-[#d4a373] px-1.5 rounded-full whitespace-nowrap" onclick="setSort('edu')" data-sort="edu">EDU</button>
-                                <button onclick="clearSort()" class="text-[#e5989b] font-bold close-btn pl-2 ml-1 text-sm hover:scale-110 transition-transform border-l border-[#dcd0c9] whitespace-nowrap">×</button>
-                            </div>
-
-                            <div class="flex items-center flex-wrap bg-[#f0e9e4] rounded-2xl px-3 py-1.5 gap-2 text-[#7d6f64] shrink-0">
-                                <span class="font-bold border-r border-[#dcd0c9] pr-2 hidden md:inline whitespace-nowrap">View</span>
-                                <label class="flex items-center gap-1 cursor-pointer hover:text-[#d4a373] whitespace-nowrap"><input type="checkbox" checked onchange="updateViewSettings('alive', this.checked)" value="alive">生還</label>
-                                <label class="flex items-center gap-1 cursor-pointer hover:text-[#d4a373] whitespace-nowrap"><input type="checkbox" checked onchange="updateViewSettings('lost', this.checked)" value="lost">ロスト</label>
-                                <label class="flex items-center gap-1 cursor-pointer hover:text-[#d4a373] whitespace-nowrap"><input type="checkbox" onchange="updateViewSettings('if', this.checked)" value="if">IF</label>
-                                <label class="flex items-center gap-1 cursor-pointer hover:text-[#d4a373] whitespace-nowrap"><input type="checkbox" onchange="updateViewSettings('retired', this.checked)" value="retired">継続</label>
-                                <label class="flex items-center gap-1 cursor-pointer hover:text-[#d4a373] whitespace-nowrap"><input type="checkbox" checked onchange="updateViewSettings('unplayed', this.checked)" value="unplayed">未通過</label>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="resizer-v hidden md:block" style="cursor: pointer;"></div>
-                </div>
-
-                <div class="mt-4">
-                    <div id="skillFilterContainer" class="column rounded-3xl p-3 md:p-5 w-full md:w-[1000px] h-[150px] flex flex-col overflow-hidden border-2 border-[#e9e0d9]">
-                        <div class="flex justify-between items-center mb-3 shrink-0 border-b border-[#f0e9e4] pb-2">
-                            <div class="font-bold text-xs text-[#a89a8e] uppercase tracking-widest">Skill Filter</div>
-                            <input type="text" id="skillSearchInput" oninput="filterSkills()" class="bg-[#fdfaf8] border-2 border-[#f0e9e4] rounded-full px-3 py-1 outline-none text-[10px] md:text-xs w-32 md:w-48 focus:border-[#d4a373] text-[#5d534a] shadow-sm transition-all" placeholder="🔍 技能名を検索...">
-                        </div>
-                        <div id="skillFilterList" class="grid gap-x-4 overflow-y-auto flex-1 pr-1" style="grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));"></div>
-                        <div class="resizer hidden md:block"></div>
-                        <div class="resizer-v hidden md:block"></div>
-                    </div>
-                </div>
-
-                <div class="flex flex-nowrap gap-4 md:gap-6 overflow-x-auto py-8 items-start pb-12">
-                    <div class="column rounded-[32px] p-4 md:p-5 min-h-[600px] w-[85vw] md:w-[550px]" id="col-alive" data-status="alive">
-                        <h2 class="text-sm font-bold mb-4 border-b-2 border-[#e9f5db] pb-2 text-[#84a98c]">🍀 生還した探索者</h2>
-                        <div class="explorer-list items-start"></div>
-                        <div class="resizer hidden md:block"></div>
+                        <button onclick="toggleMobileHeader()" class="lg:hidden bg-[#f0e9e4] text-[#7d6f64] px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1 shadow-sm shrink-0">
+                            <span id="mobile-toggle-icon">🔽</span> 絞り込み
+                        </button>
                     </div>
                     
-                    <div class="column rounded-[32px] p-4 md:p-5 min-h-[600px] w-[85vw] md:w-[250px]" id="col-lost" data-status="lost">
-                        <h2 class="text-sm font-bold mb-4 border-b-2 border-[#fae1dd] pb-2 text-[#e5989b]">🥀 ロスト</h2>
-                        <div class="explorer-list items-start"></div>
-                        <div class="resizer hidden md:block"></div>
+                    <div class="flex gap-2 w-full lg:w-auto overflow-x-auto lg:overflow-visible flex-nowrap lg:flex-wrap hide-scrollbar pb-1 lg:pb-0">
+                        <div class="relative group shrink-0">
+                            <button onclick="exportData()" class="btn-primary font-bold shadow-sm text-[11px]">📔 バックアップ作成</button>
+                        </div>
+                        <div class="relative group shrink-0">
+                            <button onclick="importBackup()" class="btn-secondary font-bold shadow-sm text-[11px]">♻️ 復元</button>
+                        </div>
+                        <div class="relative group shrink-0">
+                            <button onclick="importTxtFile()" class="btn-accent font-bold shadow-sm text-[11px]">📄 いあきゃらTXT読込</button>
+                        </div>
+                        <div class="relative group shrink-0">
+                            <button onclick="importCharaenoFile()" class="btn-accent font-bold shadow-sm text-[11px]">🌸 ココフォリア読込</button>
+                        </div>
+                    </div>
+                    <div id="trash" class="hidden lg:inline-flex shadow-sm shrink-0 ml-auto">🧸 削除</div>
+                </div>
+
+                <div id="header-controls" class="flex flex-col lg:flex-row items-start flex-wrap gap-3 w-full text-[10px] transition-opacity duration-300 lg:!flex hidden">
+                    
+                    <div class="flex items-center bg-[#f0e9e4] rounded-2xl px-3 py-1.5 gap-2 text-[#7d6f64] w-full lg:w-auto shrink-0">
+                        <span class="font-bold border-r border-[#dcd0c9] pr-2 whitespace-nowrap">Search</span>
+                        <input type="text" id="searchInput" oninput="render()" placeholder="名前・メモ検索..." class="bg-transparent outline-none text-xs w-full placeholder:text-[#b7aaa0]">
                     </div>
 
-                    <div class="column rounded-[32px] p-4 md:p-5 min-h-[600px] w-[85vw] md:w-[250px] hidden" id="col-if" data-status="if">
-                        <h2 class="text-sm font-bold mb-4 border-b-2 border-[#e0f2f1] pb-2 text-[#4db6ac]">✨ IF</h2>
-                        <div class="explorer-list items-start"></div>
-                        <div class="resizer hidden md:block"></div>
-                    </div>
+                    <div class="flex overflow-x-auto lg:overflow-visible flex-nowrap lg:flex-wrap w-full gap-3 pb-1 lg:pb-0">
+                        <div class="flex items-center bg-[#f0e9e4] rounded-2xl px-3 py-1.5 gap-1 text-[#7d6f64] shrink-0">
+                            <span class="font-bold border-r border-[#dcd0c9] pr-2 mr-1 whitespace-nowrap">Gender</span>
+                            <button id="btn-gender-all" class="hover:text-[#d4a373] font-bold px-2 rounded-full whitespace-nowrap" onclick="setGenderFilter('')">全</button>
+                            <button id="btn-gender-male" class="hover:text-[#d4a373] px-2 rounded-full whitespace-nowrap" onclick="setGenderFilter('男性')">男</button>
+                            <button id="btn-gender-female" class="hover:text-[#d4a373] px-2 rounded-full whitespace-nowrap" onclick="setGenderFilter('女性')">女</button>
+                        </div>
 
-                    <div class="column rounded-[32px] p-4 md:p-5 min-h-[600px] w-[85vw] md:w-[250px] hidden" id="col-retired" data-status="retired">
-                        <h2 class="text-sm font-bold mb-4 border-b-2 border-[#fff3e0] pb-2 text-[#fb8c00]">🚪 継続不可</h2>
-                        <div class="explorer-list items-start"></div>
-                        <div class="resizer hidden md:block"></div>
-                    </div>
+                        <div class="flex items-center bg-[#f0e9e4] rounded-2xl px-3 py-1.5 gap-2 text-[#7d6f64] shrink-0 flex-nowrap">
+                            <span class="font-bold border-r border-[#dcd0c9] pr-2 whitespace-nowrap">Tag</span>
+                            <button id="btn-tag-all" class="hover:text-[#d4a373] font-bold whitespace-nowrap px-1" onclick="setTagFilter('')">全</button>
+                            <div id="tagFilterContainer" class="flex gap-1 items-center flex-nowrap"></div>
+                        </div>
 
-                    <div class="column rounded-[32px] p-4 md:p-5 min-h-[600px] w-[85vw] md:w-[250px]" id="col-unplayed" data-status="unplayed">
-                        <h2 class="text-sm font-bold mb-4 border-b-2 border-[#f0f0f0] pb-2 text-[#a89a8e]">📝 未通過</h2>
-                        <div class="explorer-list items-start"></div>
-                        <div class="resizer hidden md:block"></div>
+                        <div class="flex items-center bg-[#f0e9e4] rounded-2xl px-3 py-1.5 gap-1 text-[#7d6f64] shrink-0">
+                            <span class="font-bold border-r border-[#dcd0c9] pr-2 mr-1 whitespace-nowrap">Sort</span>
+                            <button class="hover:text-[#d4a373] px-1.5 rounded-full whitespace-nowrap" onclick="setSort('age')" data-sort="age">年齢<span class="sort-icon"></span></button>
+                            <button class="hover:text-[#d4a373] px-1.5 rounded-full whitespace-nowrap" onclick="setSort('san')" data-sort="san">SAN</button>
+                            <button class="hover:text-[#d4a373] px-1.5 rounded-full whitespace-nowrap" onclick="setSort('str')" data-sort="str">STR</button>
+                            <button class="hover:text-[#d4a373] px-1.5 rounded-full whitespace-nowrap" onclick="setSort('dex')" data-sort="dex">DEX</button>
+                            <button class="hover:text-[#d4a373] px-1.5 rounded-full whitespace-nowrap" onclick="setSort('int')" data-sort="int">INT</button>
+                            <button class="hover:text-[#d4a373] px-1.5 rounded-full whitespace-nowrap" onclick="setSort('con')" data-sort="con">CON</button>
+                            <button class="hover:text-[#d4a373] px-1.5 rounded-full whitespace-nowrap" onclick="setSort('app')" data-sort="app">APP</button>
+                            <button class="hover:text-[#d4a373] px-1.5 rounded-full whitespace-nowrap" onclick="setSort('pow')" data-sort="pow">POW</button>
+                            <button class="hover:text-[#d4a373] px-1.5 rounded-full whitespace-nowrap" onclick="setSort('siz')" data-sort="siz">SIZ</button>
+                            <button class="hover:text-[#d4a373] px-1.5 rounded-full whitespace-nowrap" onclick="setSort('edu')" data-sort="edu">EDU</button>
+                            <button onclick="clearSort()" class="text-[#e5989b] font-bold close-btn pl-2 ml-1 text-sm hover:scale-110 transition-transform border-l border-[#dcd0c9] whitespace-nowrap">×</button>
+                        </div>
+
+                        <div class="flex items-center bg-[#f0e9e4] rounded-2xl px-3 py-1.5 gap-2 text-[#7d6f64] shrink-0">
+                            <span class="font-bold border-r border-[#dcd0c9] pr-2 whitespace-nowrap">View</span>
+                            <label class="flex items-center gap-1 cursor-pointer hover:text-[#d4a373] whitespace-nowrap"><input type="checkbox" checked onchange="updateViewSettings('alive', this.checked)" value="alive">生還</label>
+                            <label class="flex items-center gap-1 cursor-pointer hover:text-[#d4a373] whitespace-nowrap"><input type="checkbox" checked onchange="updateViewSettings('lost', this.checked)" value="lost">ロスト</label>
+                            <label class="flex items-center gap-1 cursor-pointer hover:text-[#d4a373] whitespace-nowrap"><input type="checkbox" onchange="updateViewSettings('if', this.checked)" value="if">IF</label>
+                            <label class="flex items-center gap-1 cursor-pointer hover:text-[#d4a373] whitespace-nowrap"><input type="checkbox" onchange="updateViewSettings('retired', this.checked)" value="retired">継続</label>
+                            <label class="flex items-center gap-1 cursor-pointer hover:text-[#d4a373] whitespace-nowrap"><input type="checkbox" checked onchange="updateViewSettings('unplayed', this.checked)" value="unplayed">未通過</label>
+                        </div>
                     </div>
                 </div>
             </div>
+            <div class="resizer-v hidden md:block"></div>
         </div>
+
+        <div id="skillFilterContainer" class="column w-full bg-white rounded-3xl p-4 shadow-sm mb-6 flex flex-col relative border-2 border-[#f0e9e4]">
+            <div class="flex justify-between items-center mb-3 shrink-0">
+                <h3 class="font-bold text-[#7d6f64] text-sm flex items-center gap-2">
+                    <span>🎯 技能で絞り込み</span>
+                </h3>
+                <input type="text" id="skillSearchInput" oninput="filterSkills()" placeholder="技能名で検索..." class="bg-[#f7f3f0] border-2 border-transparent rounded-full px-3 py-1.5 text-xs outline-none focus:border-[#d4a373] text-[#5d534a] w-40 placeholder:text-[#b7aaa0] transition-colors">
+            </div>
+            <div id="skillFilterList" class="flex-1 overflow-y-auto grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-x-2 gap-y-1 content-start hide-scrollbar pr-2"></div>
+            <div class="resizer-v hidden md:block"></div>
+        </div>
+
+        <div class="flex gap-4 md:gap-6 pb-20 md:pb-12 overflow-x-auto hide-scrollbar flex-nowrap w-full items-start" id="board">
+            <div class="column flex flex-col gap-3 rounded-[32px] p-4 min-w-[280px]" id="col-alive" data-status="alive" style="width: 550px;">
+                <h2 class="font-bold text-[#84a98c] flex items-center justify-between border-b-2 border-[#e9f5db] pb-2 text-sm">
+                    <span>🍀 生還</span>
+                </h2>
+                <div class="explorer-list flex-1 overflow-y-auto content-start p-1 -mx-1" style="min-height: 100px;"></div>
+                <div class="resizer hidden md:block"></div>
+            </div>
+
+            <div class="column flex flex-col gap-3 rounded-[32px] p-4 min-w-[280px]" id="col-lost" data-status="lost" style="width: 250px;">
+                <h2 class="font-bold text-[#e5989b] flex items-center justify-between border-b-2 border-[#fae1dd] pb-2 text-sm">
+                    <span>🥀 ロスト</span>
+                </h2>
+                <div class="explorer-list flex-1 overflow-y-auto content-start p-1 -mx-1" style="min-height: 100px;"></div>
+                <div class="resizer hidden md:block"></div>
+            </div>
+
+            <div class="column flex flex-col gap-3 rounded-[32px] p-4 min-w-[280px] hidden" id="col-if" data-status="if" style="width: 250px;">
+                <h2 class="font-bold text-[#d4a373] flex items-center justify-between border-b-2 border-[#f0e9e4] pb-2 text-sm">
+                    <span>✨ IF</span>
+                </h2>
+                <div class="explorer-list flex-1 overflow-y-auto content-start p-1 -mx-1" style="min-height: 100px;"></div>
+                <div class="resizer hidden md:block"></div>
+            </div>
+
+            <div class="column flex flex-col gap-3 rounded-[32px] p-4 min-w-[280px] hidden" id="col-retired" data-status="retired" style="width: 250px;">
+                <h2 class="font-bold text-[#7d6f64] flex items-center justify-between border-b-2 border-[#e9e0d9] pb-2 text-sm">
+                    <span>🚪 継続不可</span>
+                </h2>
+                <div class="explorer-list flex-1 overflow-y-auto content-start p-1 -mx-1" style="min-height: 100px;"></div>
+                <div class="resizer hidden md:block"></div>
+            </div>
+
+            <div class="column flex flex-col gap-3 rounded-[32px] p-4 min-w-[280px]" id="col-unplayed" data-status="unplayed" style="width: 250px;">
+                <h2 class="font-bold text-[#a09385] flex items-center justify-between border-b-2 border-[#f7f3f0] pb-2 text-sm">
+                    <span>📝 未通過</span>
+                </h2>
+                <div class="explorer-list flex-1 overflow-y-auto content-start p-1 -mx-1" style="min-height: 100px;"></div>
+                <div class="resizer hidden md:block"></div>
+            </div>
+        </div>
+        </div>
+</div>
 
         <div id="tab-gen" class="hidden w-full max-w-4xl mx-auto p-4 md:p-8">
             <h2 class="text-2xl font-bold text-[#d4a373] mb-6 text-center md:text-left">🎲 キャラシ作成補助ツール</h2>
@@ -601,6 +613,20 @@ function switchTab(tabId) {
     activeBtn.className = "w-12 h-12 flex items-center justify-center rounded-full transition-all duration-200 bg-[#f0e9e4] text-[#d4a373] font-bold hover:scale-110";
 }
 
+function toggleMobileHeader() {
+    const controls = document.getElementById('header-controls');
+    const icon = document.getElementById('mobile-toggle-icon');
+    
+    // md:!flex ではなく lg:!flex を外すように変更
+    controls.classList.remove('lg:!flex');
+    controls.classList.toggle('hidden');
+    
+    if (controls.classList.contains('hidden')) {
+        icon.textContent = '🔽';
+    } else {
+        icon.textContent = '🔼';
+    }
+}
 let draggingId = null;
 let currentGenderFilter = "";
 let currentTagFilter = "";
@@ -1681,7 +1707,7 @@ function rollAndSetup() {
                 <input type="number" class="base-in w-14 bg-[#f0e9e4] border border-[#e9e0d9] rounded-md text-center py-1 font-bold text-[#a09385]" value="${baseVal}" min="0" readonly>
             </td>
             <td class="p-2 border-b border-[#e9e0d9] text-center">
-                <input type="number" class="target-in w-20 bg-white border-2 border-[#e9e0d9] rounded-lg text-center py-1 focus:outline-none focus:border-[#e5989b]" placeholder="自動" min="0" max="99">
+                <input type="number" class="target-in w-20 bg-white border-2 border-[#e9e0d9] rounded-lg text-center py-1 focus:outline-none focus:border-[#e5989b]" placeholder="自動" min="0" max="80">
             </td>
         `;
         tb.appendChild(tr);
@@ -1722,26 +1748,22 @@ function runAllocation() {
     if (remainingP < 0) { alert(`ポイントが足りません！ (オーバー分: ${Math.abs(remainingP)}P)\n目標値を下げてください。`); return; }
 
     const policy = document.getElementById('gen-allocPolicy').value;
-    
-    // ... (runAllocation関数の途中)
 
     if (skillsToAuto.length > 0) {
         if (policy === 'even') {
             let baseAdd = Math.floor(remainingP / skillsToAuto.length); let mod = remainingP % skillsToAuto.length;
             skillsToAuto.forEach((sk, i) => {
-                // 上限を99から80に変更
                 let add = baseAdd + (i < mod ? 1 : 0); if (sk.base + add > 80) { add = 80 - sk.base; }
                 finalResults.push({ name: sk.name, base: sk.base, add: add, total: sk.base + add, isFixed: false }); remainingP -= add;
             });
         } else if (policy === 'five') {
             skillsToAuto.forEach(sk => {
                 let current = sk.base; let add = 0;
-                // 上限を99から80に変更
                 while(remainingP >= 5 && current + 5 <= 80) { add += 5; current += 5; remainingP -= 5; }
                 finalResults.push({ name: sk.name, base: sk.base, add: add, total: current, isFixed: false });
             });
         } else if (policy === 'odd') {
-            const targets = [11, 33, 55, 77]; // 99は上限を超えるため除外
+            const targets = [11, 33, 55, 77];
             skillsToAuto.forEach(sk => sk.add = 0); let canAdd = true;
             while (canAdd && remainingP > 0) {
                 canAdd = false;
@@ -1757,18 +1779,15 @@ function runAllocation() {
         }
     }
 
-    // 残りポイントを分配する際の処理も80上限にする
     if (remainingP > 0 && skillsToAuto.length > 0) {
         for (let sk of finalResults.filter(f => !f.isFixed)) { while (remainingP > 0 && sk.total < 80) { sk.add += 1; sk.total += 1; remainingP -= 1; } }
     }
-
-// ...
 
     const resArea = document.getElementById('gen-resultList'); const warnArea = document.getElementById('gen-remWarningArea');
     resArea.innerHTML = ''; warnArea.innerHTML = '';
     
     if (remainingP > 0) {
-        warnArea.innerHTML = `<div class="bg-[#fae1dd] text-[#e5989b] font-bold p-3 rounded-xl text-sm mb-4 border-2 border-[#f2ccc4]">⚠️ 99上限などの理由により、職業Pが <b>${remainingP} P</b> 余りました。<br>趣味技能の底上げなどに手動で割り振ってください。</div>`;
+        warnArea.innerHTML = `<div class="bg-[#fae1dd] text-[#e5989b] font-bold p-3 rounded-xl text-sm mb-4 border-2 border-[#f2ccc4]">⚠️ 80上限などの理由により、職業Pが <b>${remainingP} P</b> 余りました。<br>趣味技能の底上げなどに手動で割り振ってください。</div>`;
     }
 
     finalResults.forEach(r => {
