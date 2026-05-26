@@ -280,7 +280,12 @@
                         <div class="explorer-list items-start"></div>
                         <div class="resizer hidden md:block"></div>
                     </div>
-                </div> </div> </div> </div> <div id="tab-gen" class="hidden w-full max-w-4xl mx-auto p-4 md:p-8">
+                </div> <!-- END flex flex-col md:flex-row -->
+            </div> <!-- END board -->
+        </div> <!-- END p-3 md:p-6 -->
+    </div> <!-- END tab-sheet -->
+
+    <div id="tab-gen" class="hidden w-full max-w-4xl mx-auto p-4 md:p-8">
         <h2 class="text-2xl font-bold text-[#d4a373] mb-6 text-center md:text-left">🎲 キャラシ作成補助ツール</h2>
 
         <div class="bg-white border-[3px] border-[#e9e0d9] rounded-2xl p-5 md:p-7 shadow-sm mb-6">
@@ -349,7 +354,7 @@
                 
                 <ul class="text-sm text-[#a09385] mb-6 space-y-1 ml-4 list-disc marker:text-[#e5989b]">
                     <li><b class="text-[#5d534a]">目標値（合計値）</b>が決まっている技能は数値を入力してください。</li>
-                    <li>任意の技能は名前を入力すると、<b>自動で初期値が反映されます。</b></li>
+                    <li>任意の技能は名前を入力（または選択）すると、<b>自動で初期値が反映されます。</b></li>
                     <li>目標値が空欄の技能には、残りポイントが自動で分配されます。</li>
                 </ul>
 
@@ -1512,15 +1517,27 @@ function renderDetailSkills() {
 // キャラシ作成補助ツールのロジック
 // ==========================================
 const baseSkills = {
-    "回避": 0, "キック": 25, "組みつき": 25, "こぶし/パンチ": 50, "頭突き": 10, "投擲": 25, "マーシャルアーツ": 1,
-    "拳銃": 20, "サブマシンガン": 15, "ショットガン": 30, "マシンガン": 15, "ライフル": 25,
+    "回避": 0, "キック": 25, "組みつき": 25, "こぶし/パンチ": 50, "頭突き": 10, "投擲": 25, "マーシャルアーツ": 1, "武道(任意)": 1, "武道": 1, "日本刀": 15, "ナイフ": 25, "杖": 25,
+    "拳銃": 20, "サブマシンガン": 15, "ショットガン": 30, "マシンガン": 15, "ライフル": 25, "砲": 1,
     "応急手当": 30, "鍵開け": 1, "隠す": 15, "隠れる": 10, "聞き耳": 25, "忍び歩き": 10, "写真術": 10,
     "精神分析": 1, "追跡": 10, "登攀": 40, "図書館": 25, "目星": 25,
-    "運転(自動車)": 20, "機械修理": 20, "重機械操作": 1, "乗馬": 5, "水泳": 25, "製作": 5, "操縦": 1, "跳躍": 25, "電気修理": 10, "ナビゲート": 10, "変装": 1,
+    "運転(自動車)": 20, "機械修理": 20, "重機械操作": 1, "乗馬": 5, "水泳": 25, "製作": 5, "操縦": 1, "跳躍": 25, "電気修理": 10, "ナビゲート": 10, "変装": 1, "パラシュート": 1,
     "言いくるめ": 5, "信用": 15, "説得": 15, "値切り": 5, "母国語": 0,
     "医学": 5, "オカルト": 5, "化学": 1, "クトゥルフ神話": 0, "芸術": 5, "経理": 10, "考古学": 1, "コンピューター": 1,
     "心理学": 5, "人類学": 1, "生物学": 1, "地質学": 1, "電子工学": 1, "天文学": 1, "博物学": 10, "物理学": 1, "法律": 5, "薬学": 1, "歴史": 20
 };
+
+// --- リスト選択用の技能配列 ---
+const profChoices = ["医学","化学","考古学","人類学","生物学","地質学","電子工学","天文学","博物学","物理学","法律","歴史"];
+const fanaticChoices = ["化学","電気修理","法律","薬学","ライフル"];
+const policeChoices = ["運転(自動車)","乗馬","値切り","マーシャルアーツ","目星"];
+const dilettanteChoices = ["乗馬","写真術","操縦(航空機)","操縦(船舶)","拳銃","ライフル","ショットガン","武道(任意)"];
+const yakuzaChoices = ["隠れる","こぶし/パンチ","キック","組みつき","武道(任意)","日本刀","ナイフ","拳銃"];
+const jgsdfChoices = ["機械修理","忍び歩き","水泳","登攀","ほかの言語","パラシュート","重機械操作","砲"];
+const jmsdfChoices = ["機械修理","電気修理","近接戦技能(任意)","火器技能(任意)","砲"];
+const pmcChoices = ["応急手当","機械修理","サバイバル(山or砂漠)","ほかの言語"];
+const chefChoices = ["肉切り包丁","小型ナイフ","小さい棍棒"];
+const streetRogueChoices = ["回避","隠れる","聞き耳","経理","忍び歩き","信用","説得","値切り","法律","ほかの言語","こぶし/パンチ","キック","組みつき","武道(任意)","サブマシンガン","ライフル","グレネード・ランチャー","砲","拳銃"];
 
 const fEdu20 = s => ({ v: s.EDU * 20, t: "計算式: EDU×20" });
 const fAppPow = s => s.APP >= s.POW ? { v: s.EDU*10+s.APP*10, t: "計算式: EDU×10 ＋ APP×10" } : { v: s.EDU*10+s.POW*10, t: "計算式: EDU×10 ＋ POW×10" };
@@ -1543,13 +1560,14 @@ const fEduDexStr = s => { let m = Math.max(s.EDU*2, s.DEX, s.STR); return { v: m
 const fEduAppDex = s => { let m = Math.max(s.DEX, s.APP); return { v: s.EDU*10+m*10, t: `計算式: EDU×10 ＋ ${m==s.DEX?'DEX':'APP'}×10` }; };
 
 const jobs = {
-    "医師(基本)": { p: fEdu20, s: ["医学","応急手当","信用","心理学","精神分析","生物学","ほかの言語","任意の技能(1つ目)"] },
+    // === 基本ルールブック（6版） ===
+    "医師(基本)": { p: fEdu20, s: ["医学","応急手当","信用","心理学","精神分析","生物学","ほかの言語(ラテン語)","任意の技能(1つ目)"] },
     "エンジニア(基本)": { p: fEdu20, s: ["化学","機械修理","重機械操作","電気修理","地質学","図書館","物理学","任意の技能(1つ目)"] },
     "エンターテイナー(基本)": { p: fEdu20, s: ["言いくるめ","回避","聞き耳","芸術","信用","心理学","変装","任意の技能(1つ目)"] },
-    "教授(基本)": { p: fEdu20, s: ["信用","心理学","説得","図書館","値切り","ほかの言語","選択技能(1つ目)","選択技能(2つ目)"] },
-    "狂信者(基本)": { p: fEdu20, s: ["隠す","隠れる","心理学","説得","図書館","選択技能(1つ目)","選択技能(2つ目)","任意の技能(1つ目)"] },
+    "教授(基本)": { p: fEdu20, s: ["信用","心理学","説得","図書館","値切り","ほかの言語", {name:"選択技能(1つ目)", choices:profChoices}, {name:"選択技能(2つ目)", choices:profChoices}] },
+    "狂信者(基本)": { p: fEdu20, s: ["隠す","隠れる","心理学","説得","図書館", {name:"選択技能(1つ目)", choices:fanaticChoices}, {name:"選択技能(2つ目)", choices:fanaticChoices}, "任意の技能(1つ目)"] },
     "軍士官(基本)": { p: fEdu20, s: ["経理","信用","心理学","説得","ナビゲート","値切り","法律","任意の技能(1つ目)"] },
-    "警官(基本)": { p: fEdu20, s: ["言いくるめ","応急手当","回避","組みつき","心理学","法律","選択技能(1つ目)","選択技能(2つ目)"] },
+    "警官(基本)": { p: fEdu20, s: ["言いくるめ","応急手当","回避","組みつき","心理学","法律", {name:"選択技能(1つ目)", choices:policeChoices}, {name:"選択技能(2つ目)", choices:policeChoices}] },
     "刑事(基本)": { p: fEdu20, s: ["言いくるめ","聞き耳","心理学","説得","値切り","法律","目星","任意の技能(1つ目)"] },
     "芸術家(基本)": { p: fEdu20, s: ["言いくるめ","芸術","写真術","心理学","製作","目星","歴史","任意の技能(1つ目)"] },
     "古物研究家(基本)": { p: fEdu20, s: ["芸術","製作","図書館","値切り","ほかの言語","目星","歴史","任意の技能(1つ目)"] },
@@ -1572,6 +1590,7 @@ const jobs = {
     "放浪者(基本)": { p: fEdu20, s: ["言いくるめ","隠れる","聞き耳","忍び歩き","心理学","値切り","博物学","任意の技能(1つ目)"] },
     "ミュージシャン(基本)": { p: fEdu20, s: ["言いくるめ","聞き耳","芸術","製作","説得","心理学","値切り","任意の技能(1つ目)"] },
 
+    // === 2015 サプリ（リスト選択対応版） ===
     "アニマルセラピスト(2015)": { p: fAppPow, s: ["聞き耳","心理学","精神分析","生物学","跳躍","追跡","博物学","任意の技能(1つ目)"] },
     "看護師(2015)": { p: fEdu20, s: ["科学","生物学","応急手当","言いくるめ","薬学","心理学","聞き耳","目星"] },
     "救急救命士(2015)": { p: fAppPow, s: ["医学","応急手当","科学","鍵開け","機械修理","電気修理","登攀"] },
@@ -1587,20 +1606,20 @@ const jobs = {
     "ダンサー(2015)": { p: fDexPow, s: ["回避","芸術(ダンス)","忍び歩き","跳躍","登攀","目星","任意の技能(1つ目)","任意の技能(2つ目)"] },
     "デザイナー(2015)": { p: fEduPow, s: ["言いくるめ","芸術","コンピューター","心理学","図書館","目星","任意の技能(1つ目)","任意の技能(2つ目)"] },
     "ファッション系芸術家(2015)": { p: fDexPow, s: ["言いくるめ","芸術","心理学","値切り","変装","目星","任意の技能(1つ目)","任意の技能(2つ目)"] },
-    "自衛官(陸上自衛隊)(2015)": { p: fDexStr, s: ["応急手当","回避","隠れる","サバイバル","近接戦技能(任意)","火器技能(任意)","選択技能(1つ目)","選択技能(2つ目)"] },
-    "自衛官(海上自衛隊)(2015)": { p: fDexStr, s: ["応急手当","重機械操作","水泳","操縦","ナビゲート","サバイバル","選択技能(1つ目)","選択技能(2つ目)"] },
+    "自衛官(陸上自衛隊)(2015)": { p: fDexStr, s: ["応急手当","回避","隠れる","サバイバル","近接戦技能(任意)","火器技能(任意)", {name:"選択技能(1つ目)", choices:jgsdfChoices}, {name:"選択技能(2つ目)", choices:jgsdfChoices}] },
+    "自衛官(海上自衛隊)(2015)": { p: fDexStr, s: ["応急手当","重機械操作","水泳","操縦","ナビゲート","サバイバル", {name:"選択技能(1つ目)", choices:jmsdfChoices}, {name:"選択技能(2つ目)", choices:jmsdfChoices}] },
     "自衛官(自衛隊パイロット)(2015)": { p: fDex, s: ["機械修理","重機械操作","操縦","電気修理","天文学","ナビゲート","パラシュート","任意の技能(1つ目)"] },
-    "民間軍事会社メンバー(2015)": { p: fDexStr, s: ["回避","隠れる","忍び歩き","水泳","近接戦技能(任意)","火器技能(任意)","選択技能(1つ目)","選択技能(2つ目)"] },
+    "民間軍事会社メンバー(2015)": { p: fDexStr, s: ["回避","隠れる","忍び歩き","水泳","近接戦技能(任意)","火器技能(任意)", {name:"選択技能(1つ目)", choices:pmcChoices}, {name:"選択技能(2つ目)", choices:pmcChoices}] },
     "DEX系アスリート(2015)": { p: fDex, s: ["忍び歩き","回避","芸術(競技)","跳躍","投擲","登攀","選択技能(1つ目)","選択技能(2つ目)","選択技能(3つ目)"] },
     "STR系アスリート(2015)": { p: fStr, s: ["回避","芸術(競技)","跳躍","投擲","登攀","選択技能(1つ目)","選択技能(2つ目)","選択技能(3つ目)"] },
     "CON系アスリート(2015)": { p: fCon, s: ["回避","芸術(競技)","跳躍","投擲","登攀","選択技能(1つ目)","選択技能(2つ目)","選択技能(3つ目)"] },
-    "冒険家教授(2015)": { p: fDexCon, s: ["応急手当","説得","跳躍","登攀","図書館","ほかの言語","専門技能(1つ目)","専門技能(2つ目)"] },
-    "評論家(2015)": { p: fEdu20, s: ["信用","心理学","説得","図書館","値切り","母国語","専門技能(1つ目)","専門技能(2つ目)"] },
+    "冒険家教授(2015)": { p: fDexCon, s: ["応急手当","説得","跳躍","登攀","図書館","ほかの言語","専門分野(1つ目)","専門分野(2つ目)"] },
+    "評論家(2015)": { p: fEdu20, s: ["信用","心理学","説得","図書館","値切り","母国語","専門分野(1つ目)","専門分野(2つ目)"] },
     "アイドル、音楽タレント(2015)": { p: fApp, s: ["言いくるめ","芸術(歌唱)","芸術(ダンス)","心理学","説得","変装","任意の技能(1つ目)","任意の技能(2つ目)"] },
     "アナウンサー(2015)": { p: fEduApp, s: ["言いくるめ","信用","心理学","説得","芸術(アナウンス)","図書館","母国語","任意の技能(1つ目)"] },
     "コメディアン(2015)": { p: fDex, s: ["言いくるめ","聞き耳","心理学","芸術(物語)","芸術(演劇)","変装","任意の技能(1つ目)","任意の技能(2つ目)"] },
     "スポーツタレント(2015)": { p: fConStr, s: ["言いくるめ","心理学","芸術(演劇)","跳躍","変装","素手の戦闘技能","任意の技能(1つ目)","任意の技能(2つ目)"] },
-    "コメンテーター(2015)": { p: fEduApp, s: ["言いくるめ","聞き耳","信用","心理学","説得","図書館","値切り","専門技能(1つ目)"] },
+    "コメンテーター(2015)": { p: fEduApp, s: ["言いくるめ","聞き耳","信用","心理学","説得","図書館","値切り","専門分野(1つ目)"] },
     "ネットタレント(2015)": { p: fDex, s: ["芸術","コンピューター","心理学","説得","電気修理","任意の技能(1つ目)","任意の技能(2つ目)","任意の技能(3つ目)"] },
     "俳優(2015)": { p: fApp, s: ["言いくるめ","運転(自動車)","芸術(演劇)","心理学","説得","変装","任意の技能(1つ目)","任意の技能(2つ目)"] },
     "プロデューサー、マネージャー(2015)": { p: fPow, s: ["言いくるめ","運転(自動車)","隠れる","聞き耳","忍び歩き","値切り","法律","任意の技能(1つ目)"] },
@@ -1610,16 +1629,18 @@ const jobs = {
     "セールスマン(2015)": { p: fAppPow, s: ["言いくるめ","運転(自動車)","芸術(演技)","経理","心理学","説得","値切り","任意の技能(1つ目)"] },
     "対面接客業(2015)": { p: fAppPow, s: ["言いくるめ","回避","聞き耳","経理","心理学","説得","値切り","目星"] },
     "メカニック(2015)": { p: fEdu20, s: ["製作","登攀","運転(自動車)","電気修理","機械修理","重機械操作","任意の技能(1つ目)","任意の技能(2つ目)"] },
-    "料理人(2015)": { p: fDex, s: ["科学","製作(料理)","生物学","博物学","目星","ほかの言語","歴史","選択技能(1つ目)"] },
+    "料理人(2015)": { p: fDex, s: ["科学","製作(料理)","生物学","博物学","目星","ほかの言語","歴史", {name:"選択技能(1つ目)", choices:chefChoices}] },
     "ギャンブラー(2015)": { p: fAppDex, s: ["言いくるめ","隠す","聞き耳","芸術(演劇)","経理","心理学","目星","任意の技能(1つ目)"] },
     "経済犯罪者(2015)": { p: fEdu20, s: ["言いくるめ","経理","コンピューター","信用","心理学","説得","値切り","法律"] },
-    "ストリート･ローグ(2015)": { p: fDexStr, s: ["言いくるめ","隠れる","心理学","目星","選択技能(1つ目)","選択技能(2つ目)","選択技能(3つ目)","選択技能(4つ目)"] },
+    "ストリート･ローグ(2015)": { p: fDexStr, s: ["言いくるめ","隠れる","心理学","目星", {name:"選択技能(1つ目)", choices:streetRogueChoices}, {name:"選択技能(2つ目)", choices:streetRogueChoices}, {name:"選択技能(3つ目)", choices:streetRogueChoices}, {name:"選択技能(4つ目)", choices:streetRogueChoices}] },
     "ネット犯罪者(2015)": { p: fEdu20, s: ["コンピューター","心理学","芸術(ハッキング)","製作(ウイルス)","図書館","法律","任意の技能(1つ目)","任意の技能(2つ目)"] },
     "用心棒(2015)": { p: fDexStr, s: ["鍵開け","隠れる","忍び歩き","心理学","追跡","変装","近接戦技能(任意)","火器技能(任意)"] },
     "公選職(2015)": { p: fApp, s: ["言いくるめ","聞き耳","芸術(握手)","心理学","説得","法律","歴史","母国語"] },
     "人間山脈(2015)": { p: fSiz, s: ["投擲","武道","近接戦技能(1つ目)","近接戦技能(2つ目)","任意の技能(1つ目)","任意の技能(2つ目)","任意の技能(3つ目)"] },
     "テストプレイヤー(2015)": { p: fDex, s: ["言いくるめ","聞き耳","芸術(ゲーム)","コンピューター","電気修理","値切り","任意の技能(1つ目)","任意の技能(2つ目)"] },
     "ビデオジャーナリスト(2015)": { p: fDex, s: ["言いくるめ","隠す","写真術","電気修理","法律","選択技能(1つ目)","選択技能(2つ目)"] },
+
+    // === 2010 サプリ（リスト選択対応版） ===
     "医師(2010改訂)": { p: fEdu20, s: ["医学","応急手当","経理","信用","生物学","説得","薬学","ほかの言語"] },
     "エンジニア(2010改訂)": { p: fEdu20, s: ["機械修理","コンピューター","重機械操作","電気修理","図書館","物理学","ほかの言語","選択技能"] },
     "警官、刑事(2010改訂)": { p: fEduDexStr, s: ["言いくるめ","聞き耳","心理学","説得","追跡","法律","目星","選択技能"] },
@@ -1631,16 +1652,16 @@ const jobs = {
     "商店主、店員(2010改訂)": { p: fEduAppDex, s: ["言いくるめ","聞き耳","経理","心理学","信用","値切り","選択技能","商品知識"] },
     "私立探偵(2010改訂)": { p: fEduDexStr, s: ["言いくるめ","鍵開け","心理学","追跡","図書館","法律","目星","選択技能"] },
     "水産業従事者(2010改訂)": { p: fDex, s: ["機械修理","重機械操作","水泳","操縦","天文学","ナビゲート","博物学","目星"] },
-    "大学教授(2010改訂)": { p: fEdu20, s: ["信用","心理学","説得","図書館","値切り","ほかの言語","専門技能(1つ目)","専門技能(2つ目)"] },
+    "大学教授(2010改訂)": { p: fEdu20, s: ["信用","心理学","説得","図書館","値切り","ほかの言語", {name:"専門分野(1つ目)", choices:profChoices}, {name:"専門分野(2つ目)", choices:profChoices}] },
     "タレント(2010改訂)": { p: fEdu20, s: ["言いくるめ","聞き耳","信用","心理学","説得","芸術","変装","ほかの言語"] },
     "超心理学者(2010改訂)": { p: fEdu20, s: ["オカルト","人類学","写真術","心理学","精神分析","図書館","ほかの言語","歴史"] },
-    "ディレッタント(2010改訂)": { p: fEduApp, s: ["運転(自動車)","芸術","信用","図書館","法律","ほかの言語","選択技能(1つ目)","選択技能(2つ目)"] },
+    "ディレッタント(2010改訂)": { p: fEduApp, s: ["運転(自動車)","芸術","信用","図書館","法律","ほかの言語", {name:"選択技能(1つ目)", choices:dilettanteChoices}, {name:"選択技能(2つ目)", choices:dilettanteChoices}] },
     "ドライバー(2010改訂)": { p: fDex, s: ["運転(自動車)","機械修理","聞き耳","重機械操作","電気修理","ナビゲート","値切り","目星"] },
     "農林業作業者(2010改訂)": { p: fDexStr, s: ["応急手当","機械修理","重機械操作","製作","追跡","電気修理","博物学","選択技能"] },
     "パイロット(2010改訂)": { p: fDex, s: ["機械修理","重機械操作","電気修理","操縦","天文学","ナビゲート","物理学","ほかの言語"] },
     "ビジネスマン(2010改訂)": { p: fEdu20, s: ["言いくるめ","経理","コンピューター","信用","説得","値切り","法律","ほかの言語"] },
     "法律家(弁護士)(2010改訂)": { p: fEdu20, s: ["言いくるめ","経理","信用","心理学","説得","図書館","値切り","法律"] },
-    "暴力団団員(2010改訂)": { p: fAppPow, s: ["言いくるめ","隠す","芸術","心理学","値切り","目星","選択技能(1つ目)","選択技能(2つ目)"] },
+    "暴力団団員(2010改訂)": { p: fAppPow, s: ["言いくるめ","隠す","芸術","心理学","値切り","目星", {name:"選択技能(1つ目)", choices:yakuzaChoices}, {name:"選択技能(2つ目)", choices:yakuzaChoices}] },
     "放浪者(2010改訂)": { p: fAppDexStr, s: ["言いくるめ","隠れる","聞き耳","忍び歩き","心理学","値切り","目星","選択技能"] },
     "ミュージシャン(2010改訂)": { p: fDex, s: ["言いくるめ","聞き耳","芸術","製作","説得","心理学","値切り","ほかの言語"] },
     "メンタルセラピスト(2010改訂)": { p: fEdu20, s: ["言いくるめ","芸術","信用","心理学","精神分析","説得","法律","ほかの言語"] }
@@ -1700,14 +1721,42 @@ function rollAndSetup() {
 
     const tb = document.getElementById('gen-allocTbody'); tb.innerHTML = '';
 
-    jobs[jobName].s.forEach((skillName) => {
-        let isAny = skillName.includes("任意") || skillName.includes("選択") || skillName.includes("専門") || skillName.includes("近接") || skillName.includes("火器");
+    jobs[jobName].s.forEach((skillItem) => {
+        let skillName = "";
+        let isAny = false;
+        let choices = [];
+        
+        if (typeof skillItem === "object") {
+            // プロパティとしてchoicesを持っている場合（プルダウン用）
+            skillName = skillItem.name;
+            choices = skillItem.choices;
+            isAny = true; 
+        } else {
+            // 従来の文字列のままの場合
+            skillName = skillItem;
+            isAny = skillName.includes("任意") || skillName.includes("選択") || skillName.includes("専門") || skillName.includes("近接") || skillName.includes("火器") || skillName.includes("ほかの言語");
+        }
+
         let baseVal = baseSkills[skillName] !== undefined ? baseSkills[skillName] : (isAny ? 1 : 1);
+        
+        let inputHtml = "";
+        if (choices.length > 0) {
+            // プルダウンを生成する
+            let opts = choices.map(c => `<option value="${c}">${c}</option>`).join('');
+            inputHtml = `<select class="w-full bg-white border-2 border-[#e9e0d9] rounded-lg px-2 py-1 text-sm focus:outline-none focus:border-[#d4a373] skill-name-input" onchange="autoUpdateBase(this)">
+                <option value="" disabled selected>${skillName}</option>
+                ${opts}
+            </select>`;
+        } else if (isAny) {
+            inputHtml = `<input type="text" class="w-full bg-white border-2 border-[#e9e0d9] rounded-lg px-2 py-1 text-sm focus:outline-none focus:border-[#d4a373] skill-name-input" placeholder="${skillName}" oninput="autoUpdateBase(this)">`;
+        } else {
+            inputHtml = `<span class="px-2 font-bold skill-name-fixed">${skillName}</span>`;
+        }
         
         let tr = document.createElement('tr');
         tr.innerHTML = `
             <td class="p-2 border-r border-b border-[#e9e0d9]">
-                ${isAny ? `<input type="text" class="w-full bg-white border-2 border-[#e9e0d9] rounded-lg px-2 py-1 text-sm focus:outline-none focus:border-[#d4a373]" placeholder="${skillName}" oninput="autoUpdateBase(this)">` : `<span class="px-2 font-bold">${skillName}</span>`}
+                ${inputHtml}
             </td>
             <td class="p-2 border-r border-b border-[#e9e0d9] text-center">
                 <input type="number" class="base-in w-14 bg-[#f0e9e4] border border-[#e9e0d9] rounded-md text-center py-1 font-bold text-[#a09385]" value="${baseVal}" min="0" readonly>
@@ -1723,11 +1772,20 @@ function rollAndSetup() {
 }
 
 function autoUpdateBase(elem) {
-    let val = elem.value.trim(); let tr = elem.closest('tr'); let baseInput = tr.querySelector('.base-in');
+    let val = elem.value.trim(); 
+    let tr = elem.closest('tr'); 
+    let baseInput = tr.querySelector('.base-in');
+    
     if (val === "") { baseInput.value = 1; return; }
+    
     let foundBase = 1;
-    if (baseSkills[val] !== undefined) { foundBase = baseSkills[val]; } 
-    else { for (let key in baseSkills) { if (val.startsWith(key)) { foundBase = baseSkills[key]; break; } } }
+    if (baseSkills[val] !== undefined) { 
+        foundBase = baseSkills[val]; 
+    } else { 
+        for (let key in baseSkills) { 
+            if (val.includes(key)) { foundBase = baseSkills[key]; break; } 
+        } 
+    }
     baseInput.value = foundBase;
 }
 
@@ -1737,8 +1795,20 @@ function runAllocation() {
     let skillsToAuto = []; let finalResults = [];
 
     rows.forEach(r => {
-        let sNameInput = r.querySelector('input[type="text"]');
-        let sName = sNameInput ? (sNameInput.value || sNameInput.placeholder) : r.querySelector('span.font-bold').innerText;
+        let sNameEl = r.querySelector('.skill-name-input');
+        let sName = "";
+        
+        if (sNameEl) {
+            if (sNameEl.tagName === "SELECT") {
+                // セレクトボックスで選択されている場合はその値、未選択なら初期テキスト
+                sName = sNameEl.value || sNameEl.options[0].text;
+            } else {
+                sName = sNameEl.value || sNameEl.placeholder;
+            }
+        } else {
+            sName = r.querySelector('.skill-name-fixed').innerText;
+        }
+
         let base = parseInt(r.querySelector('.base-in').value) || 0;
         let targetInput = r.querySelector('.target-in').value;
         
