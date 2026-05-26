@@ -88,13 +88,12 @@
 
         /* スマホ対応：カラム幅が画面幅をオーバーしないように制限 */
         .column { 
-    position: relative; flex-shrink: 0; background-color: white; 
-    box-shadow: 0 4px 12px rgba(0,0,0,0.05); max-width: 100%;
-}
-
-@media (max-width: 767px) {
-            .mobile-closed { display: none !important; }
+            position: relative; flex-shrink: 0; background-color: white; 
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05); max-width: 100%;
         }
+
+        /* スマホ/PC共通の非表示クラス（絞り込みメニュー用） */
+        .hidden-area { display: none !important; }
 
         .hide-scrollbar::-webkit-scrollbar { display: none; }
         .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
@@ -157,363 +156,356 @@
 
 <main class="flex-1 h-screen overflow-y-auto overflow-x-hidden relative bg-[#f7f3f0] w-full">
         
-        <div id="tab-sheet" class="block w-full h-full relative">
-    <div class="p-3 md:p-6">
-        
-        <div class="sticky top-0 z-40 px-3 md:px-5 border-b h-auto py-4 rounded-3xl mb-6 shadow-sm relative transition-all duration-300" id="header-container">
-            <div class="flex flex-col w-full gap-3 transition-all duration-300" id="header-inner">
-    
-    <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 border-b border-[#f0e9e4] pb-3" id="header-actions">
-        <div class="flex items-center justify-between w-full md:w-auto">
-            <div class="text-left shrink-0">
-                <h1 class="text-lg font-bold leading-tight text-[#5d534a]">☕ 探索者バックアップ</h1>
-                <p class="text-[#a89a8e] text-[10px] leading-tight font-medium">Iachara/Charaeno</p>
+    <div id="tab-sheet" class="block w-full h-full relative">
+        <div class="p-3 md:p-6">
+            <div class="sticky top-0 z-40 px-3 md:px-5 border-b h-auto py-4 rounded-3xl mb-6 shadow-sm relative transition-all duration-300" id="header-container">
+                <div class="flex flex-col w-full gap-3 transition-all duration-300" id="header-inner">
+            
+                    <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 border-b border-[#f0e9e4] pb-3" id="header-actions">
+                        <div class="flex items-center justify-between w-full md:w-auto">
+                            <div class="text-left shrink-0">
+                                <h1 class="text-lg font-bold leading-tight text-[#5d534a]">☕ 探索者バックアップ</h1>
+                                <p class="text-[#a89a8e] text-[10px] leading-tight font-medium">Iachara/Charaeno</p>
+                            </div>
+                            <button onclick="toggleMobileHeader()" class="md:hidden bg-[#f0e9e4] text-[#7d6f64] px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1 shadow-sm shrink-0 whitespace-nowrap">
+                                <span id="mobile-toggle-icon">🔼</span> 絞り込み
+                            </button>
+                        </div>
+                        
+                        <div class="flex gap-2 flex-wrap w-full md:w-auto items-center">
+                            <div class="relative group">
+                                <button onclick="exportData()" class="btn-primary font-bold shadow-sm text-[11px]">📔 バックアップ作成</button>
+                            </div>
+                            <div class="relative group">
+                                <button onclick="importBackup()" class="btn-secondary font-bold shadow-sm text-[11px]">♻️ 復元</button>
+                            </div>
+                            <div class="relative group">
+                                <button onclick="importTxtFile()" class="btn-accent font-bold shadow-sm text-[11px]">📄 いあきゃらTXT読込</button>
+                            </div>
+                            <div class="relative group">
+                                <button onclick="importCharaenoFile()" class="btn-accent font-bold shadow-sm text-[11px]">🌸 いあ/エノ読込</button>
+                            </div>
+                            <div id="trash" class="hidden md:inline-flex shadow-sm whitespace-nowrap ml-auto align-middle">🧸 削除</div>
+                        </div>
+                    </div>
+
+                    <div id="header-controls" class="flex flex-col md:flex-row items-start flex-wrap gap-3 w-full text-[10px] transition-opacity duration-300">
+                        <div class="flex items-center bg-[#f0e9e4] rounded-2xl px-3 py-1.5 gap-2 text-[#7d6f64] w-full md:w-auto shrink-0">
+                            <span class="font-bold border-r border-[#dcd0c9] pr-2 whitespace-nowrap">Search</span>
+                            <input type="text" id="searchInput" oninput="render()" placeholder="名前・メモ検索..." class="bg-transparent outline-none text-xs w-full placeholder:text-[#b7aaa0]">
+                        </div>
+
+                        <div class="flex flex-wrap w-full md:w-auto gap-3">
+                            <div class="flex items-center bg-[#f0e9e4] rounded-2xl px-3 py-1.5 gap-1 text-[#7d6f64]">
+                                <span class="font-bold border-r border-[#dcd0c9] pr-2 mr-1 whitespace-nowrap">Gender</span>
+                                <button id="btn-gender-all" class="hover:text-[#d4a373] font-bold px-2 rounded-full whitespace-nowrap" onclick="setGenderFilter('')">全</button>
+                                <button id="btn-gender-male" class="hover:text-[#d4a373] px-2 rounded-full whitespace-nowrap" onclick="setGenderFilter('男性')">男</button>
+                                <button id="btn-gender-female" class="hover:text-[#d4a373] px-2 rounded-full whitespace-nowrap" onclick="setGenderFilter('女性')">女</button>
+                            </div>
+
+                            <div class="flex items-center bg-[#f0e9e4] rounded-2xl px-3 py-1.5 gap-2 text-[#7d6f64] flex-wrap">
+                                <span class="font-bold border-r border-[#dcd0c9] pr-2 whitespace-nowrap">Tag</span>
+                                <button id="btn-tag-all" class="hover:text-[#d4a373] font-bold whitespace-nowrap px-1" onclick="setTagFilter('')">全</button>
+                                <div id="tagFilterContainer" class="flex gap-1 items-center flex-wrap"></div>
+                            </div>
+
+                            <div class="flex items-center bg-[#f0e9e4] rounded-2xl px-3 py-1.5 gap-1 text-[#7d6f64] flex-wrap">
+                                <span class="font-bold border-r border-[#dcd0c9] pr-2 mr-1 whitespace-nowrap">Sort</span>
+                                <button class="hover:text-[#d4a373] px-1.5 rounded-full whitespace-nowrap" onclick="setSort('age')" data-sort="age">年齢<span class="sort-icon"></span></button>
+                                <button class="hover:text-[#d4a373] px-1.5 rounded-full whitespace-nowrap" onclick="setSort('san')" data-sort="san">SAN</button>
+                                <button class="hover:text-[#d4a373] px-1.5 rounded-full whitespace-nowrap" onclick="setSort('str')" data-sort="str">STR</button>
+                                <button class="hover:text-[#d4a373] px-1.5 rounded-full whitespace-nowrap" onclick="setSort('dex')" data-sort="dex">DEX</button>
+                                <button class="hover:text-[#d4a373] px-1.5 rounded-full whitespace-nowrap" onclick="setSort('int')" data-sort="int">INT</button>
+                                <button class="hover:text-[#d4a373] px-1.5 rounded-full whitespace-nowrap" onclick="setSort('con')" data-sort="con">CON</button>
+                                <button class="hover:text-[#d4a373] px-1.5 rounded-full whitespace-nowrap" onclick="setSort('app')" data-sort="app">APP</button>
+                                <button class="hover:text-[#d4a373] px-1.5 rounded-full whitespace-nowrap" onclick="setSort('pow')" data-sort="pow">POW</button>
+                                <button class="hover:text-[#d4a373] px-1.5 rounded-full whitespace-nowrap" onclick="setSort('siz')" data-sort="siz">SIZ</button>
+                                <button class="hover:text-[#d4a373] px-1.5 rounded-full whitespace-nowrap" onclick="setSort('edu')" data-sort="edu">EDU</button>
+                                <button onclick="clearSort()" class="text-[#e5989b] font-bold close-btn pl-2 ml-1 text-sm hover:scale-110 transition-transform border-l border-[#dcd0c9] whitespace-nowrap">×</button>
+                            </div>
+
+                            <div class="flex items-center bg-[#f0e9e4] rounded-2xl px-3 py-1.5 gap-2 text-[#7d6f64] flex-wrap">
+                                <span class="font-bold border-r border-[#dcd0c9] pr-2 whitespace-nowrap">View</span>
+                                <label class="flex items-center gap-1 cursor-pointer hover:text-[#d4a373] whitespace-nowrap"><input type="checkbox" checked onchange="updateViewSettings('alive', this.checked)" value="alive">生還</label>
+                                <label class="flex items-center gap-1 cursor-pointer hover:text-[#d4a373] whitespace-nowrap"><input type="checkbox" checked onchange="updateViewSettings('lost', this.checked)" value="lost">ロスト</label>
+                                <label class="flex items-center gap-1 cursor-pointer hover:text-[#d4a373] whitespace-nowrap"><input type="checkbox" onchange="updateViewSettings('if', this.checked)" value="if">IF</label>
+                                <label class="flex items-center gap-1 cursor-pointer hover:text-[#d4a373] whitespace-nowrap"><input type="checkbox" onchange="updateViewSettings('retired', this.checked)" value="retired">継続</label>
+                                <label class="flex items-center gap-1 cursor-pointer hover:text-[#d4a373] whitespace-nowrap"><input type="checkbox" checked onchange="updateViewSettings('unplayed', this.checked)" value="unplayed">未通過</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="resizer-v hidden md:block"></div>
             </div>
-            <button onclick="toggleMobileHeader()" class="md:hidden bg-[#f0e9e4] text-[#7d6f64] px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1 shadow-sm shrink-0 whitespace-nowrap">
-                <span id="mobile-toggle-icon">🔽</span> 絞り込み
+
+            <div id="skillFilterContainer" class="column w-full bg-white rounded-3xl p-4 shadow-sm mb-6 flex flex-col relative border-2 border-[#f0e9e4]">
+                <div class="flex justify-between items-center mb-3 shrink-0">
+                    <h3 class="font-bold text-[#7d6f64] text-sm flex items-center gap-2">
+                        <span>🎯 技能で絞り込み</span>
+                    </h3>
+                    <input type="text" id="skillSearchInput" oninput="filterSkills()" placeholder="技能名で検索..." class="bg-[#f7f3f0] border-2 border-transparent rounded-full px-3 py-1.5 text-xs outline-none focus:border-[#d4a373] text-[#5d534a] w-40 placeholder:text-[#b7aaa0] transition-colors">
+                </div>
+                <div id="skillFilterList" class="flex-1 overflow-y-auto grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-x-2 gap-y-1 content-start hide-scrollbar pr-2"></div>
+                <div class="resizer-v hidden md:block"></div>
+            </div>
+
+            <div class="flex gap-4 md:gap-6 pb-20 md:pb-12 overflow-x-auto hide-scrollbar flex-nowrap w-full items-start" id="board">
+                <div class="flex flex-col md:flex-row md:flex-nowrap gap-6 md:gap-6 md:overflow-x-auto py-6 md:py-8 items-stretch md:items-start pb-12">
+                    <div class="column rounded-[32px] p-4 md:p-5 min-h-[250px] md:min-h-[600px] w-full md:w-[550px]" id="col-alive" data-status="alive">
+                        <h2 class="text-sm font-bold mb-4 border-b-2 border-[#e9f5db] pb-2 text-[#84a98c]">🍀 生還した探索者</h2>
+                        <div class="explorer-list items-start"></div>
+                        <div class="resizer hidden md:block"></div>
+                    </div>
+                    
+                    <div class="column rounded-[32px] p-4 md:p-5 min-h-[250px] md:min-h-[600px] w-full md:w-[250px]" id="col-lost" data-status="lost">
+                        <h2 class="text-sm font-bold mb-4 border-b-2 border-[#fae1dd] pb-2 text-[#e5989b]">🥀 ロスト</h2>
+                        <div class="explorer-list items-start"></div>
+                        <div class="resizer hidden md:block"></div>
+                    </div>
+
+                    <div class="column rounded-[32px] p-4 md:p-5 min-h-[250px] md:min-h-[600px] w-full md:w-[250px] hidden" id="col-if" data-status="if">
+                        <h2 class="text-sm font-bold mb-4 border-b-2 border-[#e0f2f1] pb-2 text-[#4db6ac]">✨ IF</h2>
+                        <div class="explorer-list items-start"></div>
+                        <div class="resizer hidden md:block"></div>
+                    </div>
+
+                    <div class="column rounded-[32px] p-4 md:p-5 min-h-[250px] md:min-h-[600px] w-full md:w-[250px] hidden" id="col-retired" data-status="retired">
+                        <h2 class="text-sm font-bold mb-4 border-b-2 border-[#fff3e0] pb-2 text-[#fb8c00]">🚪 継続不可</h2>
+                        <div class="explorer-list items-start"></div>
+                        <div class="resizer hidden md:block"></div>
+                    </div>
+
+                    <div class="column rounded-[32px] p-4 md:p-5 min-h-[250px] md:min-h-[600px] w-full md:w-[250px]" id="col-unplayed" data-status="unplayed">
+                        <h2 class="text-sm font-bold mb-4 border-b-2 border-[#f0f0f0] pb-2 text-[#a89a8e]">📝 未通過</h2>
+                        <div class="explorer-list items-start"></div>
+                        <div class="resizer hidden md:block"></div>
+                    </div>
+                </div> </div> </div> </div> <div id="tab-gen" class="hidden w-full max-w-4xl mx-auto p-4 md:p-8">
+        <h2 class="text-2xl font-bold text-[#d4a373] mb-6 text-center md:text-left">🎲 キャラシ作成補助ツール</h2>
+
+        <div class="bg-white border-[3px] border-[#e9e0d9] rounded-2xl p-5 md:p-7 shadow-sm mb-6">
+            <div class="mb-6">
+                <label class="block font-bold text-[#d4a373] border-b-2 border-[#f0e9e4] pb-2 mb-4 text-lg">1. どんな人物ですか？（各+3補正）</label>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <label class="gen-checkbox cursor-pointer relative">
+                        <input type="checkbox" id="chk_STR" class="peer hidden">
+                        <div class="border-2 border-[#e9e0d9] bg-[#f7f3f0] text-[#5d534a] rounded-xl p-3 text-center transition-colors text-sm hover:bg-[#f0e9e4]">STR (力持ち)</div>
+                    </label>
+                    <label class="gen-checkbox cursor-pointer relative">
+                        <input type="checkbox" id="chk_CON" class="peer hidden">
+                        <div class="border-2 border-[#e9e0d9] bg-[#f7f3f0] text-[#5d534a] rounded-xl p-3 text-center transition-colors text-sm hover:bg-[#f0e9e4]">CON (タフ)</div>
+                    </label>
+                    <label class="gen-checkbox cursor-pointer relative">
+                        <input type="checkbox" id="chk_POW" class="peer hidden">
+                        <div class="border-2 border-[#e9e0d9] bg-[#f7f3f0] text-[#5d534a] rounded-xl p-3 text-center transition-colors text-sm hover:bg-[#f0e9e4]">POW (精神力)</div>
+                    </label>
+                    <label class="gen-checkbox cursor-pointer relative">
+                        <input type="checkbox" id="chk_DEX" class="peer hidden">
+                        <div class="border-2 border-[#e9e0d9] bg-[#f7f3f0] text-[#5d534a] rounded-xl p-3 text-center transition-colors text-sm hover:bg-[#f0e9e4]">DEX (俊敏)</div>
+                    </label>
+                    <label class="gen-checkbox cursor-pointer relative">
+                        <input type="checkbox" id="chk_APP" class="peer hidden">
+                        <div class="border-2 border-[#e9e0d9] bg-[#f7f3f0] text-[#5d534a] rounded-xl p-3 text-center transition-colors text-sm hover:bg-[#f0e9e4]">APP (外見良)</div>
+                    </label>
+                    <label class="gen-checkbox cursor-pointer relative">
+                        <input type="checkbox" id="chk_SIZ" class="peer hidden">
+                        <div class="border-2 border-[#e9e0d9] bg-[#f7f3f0] text-[#5d534a] rounded-xl p-3 text-center transition-colors text-sm hover:bg-[#f0e9e4]">SIZ (体格良)</div>
+                    </label>
+                    <label class="gen-checkbox cursor-pointer relative">
+                        <input type="checkbox" id="chk_INT" class="peer hidden">
+                        <div class="border-2 border-[#e9e0d9] bg-[#f7f3f0] text-[#5d534a] rounded-xl p-3 text-center transition-colors text-sm hover:bg-[#f0e9e4]">INT (頭脳派)</div>
+                    </label>
+                    <label class="gen-checkbox cursor-pointer relative">
+                        <input type="checkbox" id="chk_EDU" class="peer hidden">
+                        <div class="border-2 border-[#e9e0d9] bg-[#f7f3f0] text-[#5d534a] rounded-xl p-3 text-center transition-colors text-sm hover:bg-[#f0e9e4]">EDU (高学歴)</div>
+                    </label>
+                </div>
+            </div>
+
+            <div class="mb-6">
+                <label class="block font-bold text-[#d4a373] border-b-2 border-[#f0e9e4] pb-2 mb-4 text-lg">2. 職業を選択</label>
+                <select id="gen-jobSelect" class="w-full border-2 border-[#e9e0d9] rounded-xl px-4 py-3 text-[#5d534a] bg-[#f7f3f0] focus:outline-none focus:border-[#d4a373] focus:bg-white transition-colors cursor-pointer"></select>
+            </div>
+
+            <button onclick="rollAndSetup()" class="w-full bg-[#d4a373] text-white font-bold rounded-full py-4 px-6 hover:scale-[1.02] transition-transform shadow-sm text-lg">
+                🎲 ダイスロール ＆ 割り振り画面へ
             </button>
         </div>
-        
-        <div class="flex gap-2 flex-wrap w-full md:w-auto items-center">
-            <div class="relative group">
-                <button onclick="exportData()" class="btn-primary font-bold shadow-sm text-[11px]">📔 バックアップ作成</button>
+
+        <div id="gen-content" class="hidden">
+            <div class="bg-white border-[3px] border-[#e9e0d9] rounded-2xl p-5 md:p-7 shadow-sm mb-6">
+                <h3 class="font-bold text-[#d4a373] border-b-2 border-[#f0e9e4] pb-2 mb-4 text-lg">算出ステータス</h3>
+                <div id="gen-statsGrid" class="grid grid-cols-4 md:grid-cols-8 gap-2 mb-4"></div>
+                <div id="gen-derivedGrid" class="grid grid-cols-3 gap-2 border-t-2 border-dashed border-[#e9e0d9] pt-4"></div>
             </div>
-            <div class="relative group">
-                <button onclick="importBackup()" class="btn-secondary font-bold shadow-sm text-[11px]">♻️ 復元</button>
-            </div>
-            <div class="relative group">
-                <button onclick="importTxtFile()" class="btn-accent font-bold shadow-sm text-[11px]">📄 いあきゃらTXT読込</button>
-            </div>
-            <div class="relative group">
-                <button onclick="importCharaenoFile()" class="btn-accent font-bold shadow-sm text-[11px]">🌸 いあ/エノ読込</button>
-            </div>
-            
-            <div id="trash" class="hidden md:inline-flex shadow-sm whitespace-nowrap ml-auto align-middle">🧸 削除</div>
-        </div>
-    </div>
-
-    <div id="header-controls" class="mobile-closed flex flex-col md:flex-row items-start flex-wrap gap-3 w-full text-[10px] transition-opacity duration-300">
-        
-        <div class="flex items-center bg-[#f0e9e4] rounded-2xl px-3 py-1.5 gap-2 text-[#7d6f64] w-full md:w-auto shrink-0">
-            <span class="font-bold border-r border-[#dcd0c9] pr-2 whitespace-nowrap">Search</span>
-            <input type="text" id="searchInput" oninput="render()" placeholder="名前・メモ検索..." class="bg-transparent outline-none text-xs w-full placeholder:text-[#b7aaa0]">
-        </div>
-
-        <div class="flex flex-wrap w-full md:w-auto gap-3">
-            <div class="flex items-center bg-[#f0e9e4] rounded-2xl px-3 py-1.5 gap-1 text-[#7d6f64]">
-                <span class="font-bold border-r border-[#dcd0c9] pr-2 mr-1 whitespace-nowrap">Gender</span>
-                <button id="btn-gender-all" class="hover:text-[#d4a373] font-bold px-2 rounded-full whitespace-nowrap" onclick="setGenderFilter('')">全</button>
-                <button id="btn-gender-male" class="hover:text-[#d4a373] px-2 rounded-full whitespace-nowrap" onclick="setGenderFilter('男性')">男</button>
-                <button id="btn-gender-female" class="hover:text-[#d4a373] px-2 rounded-full whitespace-nowrap" onclick="setGenderFilter('女性')">女</button>
-            </div>
-
-            <div class="flex items-center bg-[#f0e9e4] rounded-2xl px-3 py-1.5 gap-2 text-[#7d6f64] flex-wrap">
-                <span class="font-bold border-r border-[#dcd0c9] pr-2 whitespace-nowrap">Tag</span>
-                <button id="btn-tag-all" class="hover:text-[#d4a373] font-bold whitespace-nowrap px-1" onclick="setTagFilter('')">全</button>
-                <div id="tagFilterContainer" class="flex gap-1 items-center flex-wrap"></div>
-            </div>
-
-            <div class="flex items-center bg-[#f0e9e4] rounded-2xl px-3 py-1.5 gap-1 text-[#7d6f64] flex-wrap">
-                <span class="font-bold border-r border-[#dcd0c9] pr-2 mr-1 whitespace-nowrap">Sort</span>
-                <button class="hover:text-[#d4a373] px-1.5 rounded-full whitespace-nowrap" onclick="setSort('age')" data-sort="age">年齢<span class="sort-icon"></span></button>
-                <button class="hover:text-[#d4a373] px-1.5 rounded-full whitespace-nowrap" onclick="setSort('san')" data-sort="san">SAN</button>
-                <button class="hover:text-[#d4a373] px-1.5 rounded-full whitespace-nowrap" onclick="setSort('str')" data-sort="str">STR</button>
-                <button class="hover:text-[#d4a373] px-1.5 rounded-full whitespace-nowrap" onclick="setSort('dex')" data-sort="dex">DEX</button>
-                <button class="hover:text-[#d4a373] px-1.5 rounded-full whitespace-nowrap" onclick="setSort('int')" data-sort="int">INT</button>
-                <button class="hover:text-[#d4a373] px-1.5 rounded-full whitespace-nowrap" onclick="setSort('con')" data-sort="con">CON</button>
-                <button class="hover:text-[#d4a373] px-1.5 rounded-full whitespace-nowrap" onclick="setSort('app')" data-sort="app">APP</button>
-                <button class="hover:text-[#d4a373] px-1.5 rounded-full whitespace-nowrap" onclick="setSort('pow')" data-sort="pow">POW</button>
-                <button class="hover:text-[#d4a373] px-1.5 rounded-full whitespace-nowrap" onclick="setSort('siz')" data-sort="siz">SIZ</button>
-                <button class="hover:text-[#d4a373] px-1.5 rounded-full whitespace-nowrap" onclick="setSort('edu')" data-sort="edu">EDU</button>
-                <button onclick="clearSort()" class="text-[#e5989b] font-bold close-btn pl-2 ml-1 text-sm hover:scale-110 transition-transform border-l border-[#dcd0c9] whitespace-nowrap">×</button>
-            </div>
-
-            <div class="flex items-center bg-[#f0e9e4] rounded-2xl px-3 py-1.5 gap-2 text-[#7d6f64] flex-wrap">
-                <span class="font-bold border-r border-[#dcd0c9] pr-2 whitespace-nowrap">View</span>
-                <label class="flex items-center gap-1 cursor-pointer hover:text-[#d4a373] whitespace-nowrap"><input type="checkbox" checked onchange="updateViewSettings('alive', this.checked)" value="alive">生還</label>
-                <label class="flex items-center gap-1 cursor-pointer hover:text-[#d4a373] whitespace-nowrap"><input type="checkbox" checked onchange="updateViewSettings('lost', this.checked)" value="lost">ロスト</label>
-                <label class="flex items-center gap-1 cursor-pointer hover:text-[#d4a373] whitespace-nowrap"><input type="checkbox" onchange="updateViewSettings('if', this.checked)" value="if">IF</label>
-                <label class="flex items-center gap-1 cursor-pointer hover:text-[#d4a373] whitespace-nowrap"><input type="checkbox" onchange="updateViewSettings('retired', this.checked)" value="retired">継続</label>
-                <label class="flex items-center gap-1 cursor-pointer hover:text-[#d4a373] whitespace-nowrap"><input type="checkbox" checked onchange="updateViewSettings('unplayed', this.checked)" value="unplayed">未通過</label>
-            </div>
-        </div>
-    </div>
-</div>
-            <div class="resizer-v hidden md:block"></div>
-        </div>
-
-        <div id="skillFilterContainer" class="column w-full bg-white rounded-3xl p-4 shadow-sm mb-6 flex flex-col relative border-2 border-[#f0e9e4]">
-            <div class="flex justify-between items-center mb-3 shrink-0">
-                <h3 class="font-bold text-[#7d6f64] text-sm flex items-center gap-2">
-                    <span>🎯 技能で絞り込み</span>
-                </h3>
-                <input type="text" id="skillSearchInput" oninput="filterSkills()" placeholder="技能名で検索..." class="bg-[#f7f3f0] border-2 border-transparent rounded-full px-3 py-1.5 text-xs outline-none focus:border-[#d4a373] text-[#5d534a] w-40 placeholder:text-[#b7aaa0] transition-colors">
-            </div>
-            <div id="skillFilterList" class="flex-1 overflow-y-auto grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-x-2 gap-y-1 content-start hide-scrollbar pr-2"></div>
-            <div class="resizer-v hidden md:block"></div>
-        </div>
-
-        <div class="flex gap-4 md:gap-6 pb-20 md:pb-12 overflow-x-auto hide-scrollbar flex-nowrap w-full items-start" id="board">
-            <div class="flex flex-col md:flex-row md:flex-nowrap gap-6 md:gap-6 md:overflow-x-auto py-6 md:py-8 items-stretch md:items-start pb-12">
-    <div class="column rounded-[32px] p-4 md:p-5 min-h-[250px] md:min-h-[600px] w-full md:w-[550px]" id="col-alive" data-status="alive">
-        <h2 class="text-sm font-bold mb-4 border-b-2 border-[#e9f5db] pb-2 text-[#84a98c]">🍀 生還した探索者</h2>
-        <div class="explorer-list items-start"></div>
-        <div class="resizer hidden md:block"></div>
-    </div>
-    
-    <div class="column rounded-[32px] p-4 md:p-5 min-h-[250px] md:min-h-[600px] w-full md:w-[250px]" id="col-lost" data-status="lost">
-        <h2 class="text-sm font-bold mb-4 border-b-2 border-[#fae1dd] pb-2 text-[#e5989b]">🥀 ロスト</h2>
-        <div class="explorer-list items-start"></div>
-        <div class="resizer hidden md:block"></div>
-    </div>
-
-    <div class="column rounded-[32px] p-4 md:p-5 min-h-[250px] md:min-h-[600px] w-full md:w-[250px] hidden" id="col-if" data-status="if">
-        <h2 class="text-sm font-bold mb-4 border-b-2 border-[#e0f2f1] pb-2 text-[#4db6ac]">✨ IF</h2>
-        <div class="explorer-list items-start"></div>
-        <div class="resizer hidden md:block"></div>
-    </div>
-
-    <div class="column rounded-[32px] p-4 md:p-5 min-h-[250px] md:min-h-[600px] w-full md:w-[250px] hidden" id="col-retired" data-status="retired">
-        <h2 class="text-sm font-bold mb-4 border-b-2 border-[#fff3e0] pb-2 text-[#fb8c00]">🚪 継続不可</h2>
-        <div class="explorer-list items-start"></div>
-        <div class="resizer hidden md:block"></div>
-    </div>
-
-    <div class="column rounded-[32px] p-4 md:p-5 min-h-[250px] md:min-h-[600px] w-full md:w-[250px]" id="col-unplayed" data-status="unplayed">
-        <h2 class="text-sm font-bold mb-4 border-b-2 border-[#f0f0f0] pb-2 text-[#a89a8e]">📝 未通過</h2>
-        <div class="explorer-list items-start"></div>
-        <div class="resizer hidden md:block"></div>
-    </div>
-</div>
-        </div>
-</div>
-
-</div><div id="tab-gen" class="hidden w-full max-w-4xl mx-auto p-4 md:p-8">
-            <h2 class="text-2xl font-bold text-[#d4a373] mb-6 text-center md:text-left">🎲 キャラシ作成補助ツール</h2>
 
             <div class="bg-white border-[3px] border-[#e9e0d9] rounded-2xl p-5 md:p-7 shadow-sm mb-6">
-                <div class="mb-6">
-                    <label class="block font-bold text-[#d4a373] border-b-2 border-[#f0e9e4] pb-2 mb-4 text-lg">1. どんな人物ですか？（各+3補正）</label>
-                    <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-                        <label class="gen-checkbox cursor-pointer relative">
-                            <input type="checkbox" id="chk_STR" class="peer hidden">
-                            <div class="border-2 border-[#e9e0d9] bg-[#f7f3f0] text-[#5d534a] rounded-xl p-3 text-center transition-colors text-sm hover:bg-[#f0e9e4]">STR (力持ち)</div>
-                        </label>
-                        <label class="gen-checkbox cursor-pointer relative">
-                            <input type="checkbox" id="chk_CON" class="peer hidden">
-                            <div class="border-2 border-[#e9e0d9] bg-[#f7f3f0] text-[#5d534a] rounded-xl p-3 text-center transition-colors text-sm hover:bg-[#f0e9e4]">CON (タフ)</div>
-                        </label>
-                        <label class="gen-checkbox cursor-pointer relative">
-                            <input type="checkbox" id="chk_POW" class="peer hidden">
-                            <div class="border-2 border-[#e9e0d9] bg-[#f7f3f0] text-[#5d534a] rounded-xl p-3 text-center transition-colors text-sm hover:bg-[#f0e9e4]">POW (精神力)</div>
-                        </label>
-                        <label class="gen-checkbox cursor-pointer relative">
-                            <input type="checkbox" id="chk_DEX" class="peer hidden">
-                            <div class="border-2 border-[#e9e0d9] bg-[#f7f3f0] text-[#5d534a] rounded-xl p-3 text-center transition-colors text-sm hover:bg-[#f0e9e4]">DEX (俊敏)</div>
-                        </label>
-                        <label class="gen-checkbox cursor-pointer relative">
-                            <input type="checkbox" id="chk_APP" class="peer hidden">
-                            <div class="border-2 border-[#e9e0d9] bg-[#f7f3f0] text-[#5d534a] rounded-xl p-3 text-center transition-colors text-sm hover:bg-[#f0e9e4]">APP (外見良)</div>
-                        </label>
-                        <label class="gen-checkbox cursor-pointer relative">
-                            <input type="checkbox" id="chk_SIZ" class="peer hidden">
-                            <div class="border-2 border-[#e9e0d9] bg-[#f7f3f0] text-[#5d534a] rounded-xl p-3 text-center transition-colors text-sm hover:bg-[#f0e9e4]">SIZ (体格良)</div>
-                        </label>
-                        <label class="gen-checkbox cursor-pointer relative">
-                            <input type="checkbox" id="chk_INT" class="peer hidden">
-                            <div class="border-2 border-[#e9e0d9] bg-[#f7f3f0] text-[#5d534a] rounded-xl p-3 text-center transition-colors text-sm hover:bg-[#f0e9e4]">INT (頭脳派)</div>
-                        </label>
-                        <label class="gen-checkbox cursor-pointer relative">
-                            <input type="checkbox" id="chk_EDU" class="peer hidden">
-                            <div class="border-2 border-[#e9e0d9] bg-[#f7f3f0] text-[#5d534a] rounded-xl p-3 text-center transition-colors text-sm hover:bg-[#f0e9e4]">EDU (高学歴)</div>
-                        </label>
-                    </div>
+                <h3 class="font-bold text-[#d4a373] border-b-2 border-[#f0e9e4] pb-2 mb-4 text-lg">職業技能の割り振りシミュレータ</h3>
+                
+                <div class="bg-[#f0e9e4] border-2 border-[#e9e0d9] rounded-xl p-4 text-center mb-6">
+                    <div class="text-[#d4a373] font-bold text-xl mb-1">職業技能P: <span id="gen-resJobP" class="text-2xl"></span></div>
+                    <div id="gen-resFormula" class="text-[#a09385] text-sm"></div>
+                </div>
+                
+                <ul class="text-sm text-[#a09385] mb-6 space-y-1 ml-4 list-disc marker:text-[#e5989b]">
+                    <li><b class="text-[#5d534a]">目標値（合計値）</b>が決まっている技能は数値を入力してください。</li>
+                    <li>任意の技能は名前を入力すると、<b>自動で初期値が反映されます。</b></li>
+                    <li>目標値が空欄の技能には、残りポイントが自動で分配されます。</li>
+                </ul>
+
+                <div class="overflow-x-auto mb-6 rounded-xl border-2 border-[#e9e0d9]">
+                    <table class="w-full text-sm text-left">
+                        <thead class="bg-[#f0e9e4] text-[#5d534a]">
+                            <tr>
+                                <th class="p-3 font-bold">技能名</th>
+                                <th class="p-3 font-bold text-center w-20">初期値</th>
+                                <th class="p-3 font-bold text-center w-28">目標値(固定)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="gen-allocTbody" class="divide-y border-[#e9e0d9]"></tbody>
+                    </table>
                 </div>
 
                 <div class="mb-6">
-                    <label class="block font-bold text-[#d4a373] border-b-2 border-[#f0e9e4] pb-2 mb-4 text-lg">2. 職業を選択</label>
-                    <select id="gen-jobSelect" class="w-full border-2 border-[#e9e0d9] rounded-xl px-4 py-3 text-[#5d534a] bg-[#f7f3f0] focus:outline-none focus:border-[#d4a373] focus:bg-white transition-colors cursor-pointer"></select>
+                    <label class="block font-bold text-[#5d534a] mb-2 text-sm">割り振り方針（未入力の技能への分配方法）</label>
+                    <select id="gen-allocPolicy" class="w-full border-2 border-[#e9e0d9] rounded-xl px-4 py-3 text-[#5d534a] bg-[#f7f3f0] focus:outline-none focus:border-[#e5989b] focus:bg-white transition-colors cursor-pointer">
+                        <option value="even">すべて均等に割り振る</option>
+                        <option value="five">5の倍数で綺麗に割り振る</option>
+                        <option value="odd">可能な限り奇数ゾロ目（11, 33, 55...）になるよう割り振る</option>
+                    </select>
                 </div>
 
-                <button onclick="rollAndSetup()" class="w-full bg-[#d4a373] text-white font-bold rounded-full py-4 px-6 hover:scale-[1.02] transition-transform shadow-sm text-lg">
-                    🎲 ダイスロール ＆ 割り振り画面へ
+                <button onclick="runAllocation()" class="w-full bg-[#e5989b] text-white font-bold rounded-full py-4 px-6 hover:scale-[1.02] transition-transform shadow-sm text-lg">
+                    ✨ 割り振り案を生成する
                 </button>
+
+                <div id="gen-resultArea" class="hidden mt-8">
+                    <h3 class="font-bold text-[#e5989b] border-b-2 border-[#fae1dd] pb-2 mb-4 text-lg">🎉 割り振り結果</h3>
+                    <div id="gen-remWarningArea"></div>
+                    <div id="gen-resultList" class="space-y-2"></div>
+                </div>
             </div>
 
-            <div id="gen-content" class="hidden">
-                <div class="bg-white border-[3px] border-[#e9e0d9] rounded-2xl p-5 md:p-7 shadow-sm mb-6">
-                    <h3 class="font-bold text-[#d4a373] border-b-2 border-[#f0e9e4] pb-2 mb-4 text-lg">算出ステータス</h3>
-                    <div id="gen-statsGrid" class="grid grid-cols-4 md:grid-cols-8 gap-2 mb-4"></div>
-                    <div id="gen-derivedGrid" class="grid grid-cols-3 gap-2 border-t-2 border-dashed border-[#e9e0d9] pt-4"></div>
-                </div>
+        </div>
+    </div>
+</main>
 
-                <div class="bg-white border-[3px] border-[#e9e0d9] rounded-2xl p-5 md:p-7 shadow-sm mb-6">
-                    <h3 class="font-bold text-[#d4a373] border-b-2 border-[#f0e9e4] pb-2 mb-4 text-lg">職業技能の割り振りシミュレータ</h3>
-                    
-                    <div class="bg-[#f0e9e4] border-2 border-[#e9e0d9] rounded-xl p-4 text-center mb-6">
-                        <div class="text-[#d4a373] font-bold text-xl mb-1">職業技能P: <span id="gen-resJobP" class="text-2xl"></span></div>
-                        <div id="gen-resFormula" class="text-[#a09385] text-sm"></div>
+<div id="importModal" class="hidden fixed inset-0 bg-[#5d534a]/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-[40px] p-6 md:p-8 w-full max-w-3xl shadow-2xl border-4 border-[#f0e9e4]">
+        <h2 class="text-2xl font-bold mb-4 text-[#5d534a]">探索者のインポート</h2>
+        <textarea id="jsonInput" class="w-full h-48 md:h-72 bg-[#fdfaf8] border-2 border-[#f0e9e4] rounded-3xl p-5 outline-none font-mono text-xs focus:border-[#d4a373]" placeholder="ここにコピーしたテキストを貼り付けてね！"></textarea>
+        <div class="flex justify-end gap-3 mt-6">
+            <button onclick="closeImportModal()" class="px-6 py-3 rounded-full bg-[#f0e9e4] font-bold">とじる</button>
+            <button onclick="importJson()" class="px-8 py-3 rounded-full btn-primary font-bold shadow-md">読み込む！</button>
+        </div>
+    </div>
+</div>
+
+<div id="detailModal" onclick="outsideClose(event)" class="hidden fixed inset-0 bg-[#5d534a]/60 backdrop-blur-sm flex items-center justify-center p-2 md:p-4 z-50">
+    <div class="bg-white rounded-[32px] md:rounded-[40px] p-5 md:p-8 w-full max-w-5xl max-h-[90vh] md:max-h-[95vh] overflow-y-auto shadow-2xl border-4 border-[#f0e9e4]">
+        
+        <div class="flex flex-col md:flex-row justify-between items-start gap-4 mb-6 md:mb-8">
+            <div class="w-full">
+                <h2 id="detailName" class="text-2xl md:text-3xl font-bold text-[#5d534a] mb-3"></h2>
+                
+                <div class="flex items-center gap-2 md:gap-3 flex-wrap">
+                    <div class="flex items-center bg-[#f0e9e4] rounded-full p-1 w-full sm:w-auto">
+                        <span class="text-xs font-bold text-[#7d6f64] px-3 whitespace-nowrap">職業</span>
+                        <input type="text" id="detailOccupation" onchange="saveOccupation()" class="bg-white border-2 border-transparent rounded-full px-3 py-1 outline-none text-xs focus:border-[#d4a373] w-full sm:w-40 md:w-48 text-[#5d534a] shadow-sm transition-all" placeholder="職業未設定">
                     </div>
                     
-                    <ul class="text-sm text-[#a09385] mb-6 space-y-1 ml-4 list-disc marker:text-[#e5989b]">
-                        <li><b class="text-[#5d534a]">目標値（合計値）</b>が決まっている技能は数値を入力してください。</li>
-                        <li>任意の技能は名前を入力すると、<b>自動で初期値が反映されます。</b></li>
-                        <li>目標値が空欄の技能には、残りポイントが自動で分配されます。</li>
-                    </ul>
-
-                    <div class="overflow-x-auto mb-6 rounded-xl border-2 border-[#e9e0d9]">
-                        <table class="w-full text-sm text-left">
-                            <thead class="bg-[#f0e9e4] text-[#5d534a]">
-                                <tr>
-                                    <th class="p-3 font-bold">技能名</th>
-                                    <th class="p-3 font-bold text-center w-20">初期値</th>
-                                    <th class="p-3 font-bold text-center w-28">目標値(固定)</th>
-                                </tr>
-                            </thead>
-                            <tbody id="gen-allocTbody" class="divide-y border-[#e9e0d9]"></tbody>
-                        </table>
+                    <div class="flex items-center bg-[#f0e9e4] rounded-full p-1">
+                        <span class="text-xs font-bold text-[#7d6f64] px-3">年齢</span>
+                        <input type="number" id="detailAge" onchange="saveAge()" class="bg-white border-2 border-transparent rounded-full px-3 py-1 outline-none text-xs text-center focus:border-[#d4a373] w-12 text-[#5d534a] shadow-sm transition-all" placeholder="0">
+                        <span class="text-xs font-bold text-[#7d6f64] pr-3 pl-1">歳</span>
                     </div>
 
-                    <div class="mb-6">
-                        <label class="block font-bold text-[#5d534a] mb-2 text-sm">割り振り方針（未入力の技能への分配方法）</label>
-                        <select id="gen-allocPolicy" class="w-full border-2 border-[#e9e0d9] rounded-xl px-4 py-3 text-[#5d534a] bg-[#f7f3f0] focus:outline-none focus:border-[#e5989b] focus:bg-white transition-colors cursor-pointer">
-                            <option value="even">すべて均等に割り振る</option>
-                            <option value="five">5の倍数で綺麗に割り振る</option>
-                            <option value="odd">可能な限り奇数ゾロ目（11, 33, 55...）になるよう割り振る</option>
+                    <div class="flex items-center bg-[#f0e9e4] rounded-full p-1">
+                        <span class="text-xs font-bold text-[#7d6f64] px-3">状態</span>
+                        <select id="detailStatus" onchange="saveStatus()" class="bg-white border-2 border-transparent rounded-full px-2 py-1 outline-none text-xs focus:border-[#d4a373] text-[#5d534a] shadow-sm cursor-pointer transition-all">
+                            <option value="alive">🍀 生還</option>
+                            <option value="lost">🥀 ロスト</option>
+                            <option value="if">✨ IF</option>
+                            <option value="retired">🚪 継続不可</option>
+                            <option value="unplayed">📝 未通過</option>
                         </select>
                     </div>
 
-                    <button onclick="runAllocation()" class="w-full bg-[#e5989b] text-white font-bold rounded-full py-4 px-6 hover:scale-[1.02] transition-transform shadow-sm text-lg">
-                        ✨ 割り振り案を生成する
-                    </button>
-
-                    <div id="gen-resultArea" class="hidden mt-8">
-                        <h3 class="font-bold text-[#e5989b] border-b-2 border-[#fae1dd] pb-2 mb-4 text-lg">🎉 割り振り結果</h3>
-                        <div id="gen-remWarningArea"></div>
-                        <div id="gen-resultList" class="space-y-2"></div>
+                    <div class="flex items-center gap-2">
+                        <button onclick="changeSan(-1)" class="w-8 h-8 rounded-full bg-[#fae1dd] text-[#e5989b] font-bold">−</button>
+                        <div id="detailSanBadge" class="bg-[#e9f5db] text-[#84a98c] px-4 py-1.5 rounded-full text-xs font-bold shadow-sm whitespace-nowrap"></div>
+                        <button onclick="changeSan(1)" class="w-8 h-8 rounded-full bg-[#e0f2f1] text-[#4db6ac] font-bold">＋</button>
                     </div>
                 </div>
+            </div>
 
+            <div class="flex gap-2 w-full md:w-auto justify-end flex-wrap">
+                <button onclick="closeDetailModal()" class="bg-[#f0e9e4] px-4 md:px-6 py-2 rounded-full font-bold text-xs md:text-base">閉じる</button>
+                <button onclick="deleteExplorer()" class="bg-[#fae1dd] text-[#e5989b] px-4 md:px-6 py-2 rounded-full font-bold text-xs md:text-base">削除</button>
+                <button onclick="copyToClipboardJSON()" class="btn-primary px-4 md:px-6 py-2 rounded-full font-bold text-xs md:text-base">コマ出力</button>
+                <button onclick="copyMarkdownStatus()" class="btn-secondary px-4 md:px-6 py-2 rounded-full font-bold text-xs md:text-base">Markdown</button>
             </div>
         </div>
-    </main>
-
-    <div id="importModal" class="hidden fixed inset-0 bg-[#5d534a]/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-        <div class="bg-white rounded-[40px] p-6 md:p-8 w-full max-w-3xl shadow-2xl border-4 border-[#f0e9e4]">
-            <h2 class="text-2xl font-bold mb-4 text-[#5d534a]">探索者のインポート</h2>
-            <textarea id="jsonInput" class="w-full h-48 md:h-72 bg-[#fdfaf8] border-2 border-[#f0e9e4] rounded-3xl p-5 outline-none font-mono text-xs focus:border-[#d4a373]" placeholder="ここにコピーしたテキストを貼り付けてね！"></textarea>
-            <div class="flex justify-end gap-3 mt-6">
-                <button onclick="closeImportModal()" class="px-6 py-3 rounded-full bg-[#f0e9e4] font-bold">とじる</button>
-                <button onclick="importJson()" class="px-8 py-3 rounded-full btn-primary font-bold shadow-md">読み込む！</button>
-            </div>
-        </div>
-    </div>
-
-    <div id="detailModal" onclick="outsideClose(event)" class="hidden fixed inset-0 bg-[#5d534a]/60 backdrop-blur-sm flex items-center justify-center p-2 md:p-4 z-50">
-        <div class="bg-white rounded-[32px] md:rounded-[40px] p-5 md:p-8 w-full max-w-5xl max-h-[90vh] md:max-h-[95vh] overflow-y-auto shadow-2xl border-4 border-[#f0e9e4]">
-            
-            <div class="flex flex-col md:flex-row justify-between items-start gap-4 mb-6 md:mb-8">
-                <div class="w-full">
-                    <h2 id="detailName" class="text-2xl md:text-3xl font-bold text-[#5d534a] mb-3"></h2>
-                    
-                    <div class="flex items-center gap-2 md:gap-3 flex-wrap">
-                        <div class="flex items-center bg-[#f0e9e4] rounded-full p-1 w-full sm:w-auto">
-                            <span class="text-xs font-bold text-[#7d6f64] px-3 whitespace-nowrap">職業</span>
-                            <input type="text" id="detailOccupation" onchange="saveOccupation()" class="bg-white border-2 border-transparent rounded-full px-3 py-1 outline-none text-xs focus:border-[#d4a373] w-full sm:w-40 md:w-48 text-[#5d534a] shadow-sm transition-all" placeholder="職業未設定">
-                        </div>
-                        
-                        <div class="flex items-center bg-[#f0e9e4] rounded-full p-1">
-                            <span class="text-xs font-bold text-[#7d6f64] px-3">年齢</span>
-                            <input type="number" id="detailAge" onchange="saveAge()" class="bg-white border-2 border-transparent rounded-full px-3 py-1 outline-none text-xs text-center focus:border-[#d4a373] w-12 text-[#5d534a] shadow-sm transition-all" placeholder="0">
-                            <span class="text-xs font-bold text-[#7d6f64] pr-3 pl-1">歳</span>
-                        </div>
-
-                        <div class="flex items-center bg-[#f0e9e4] rounded-full p-1">
-                            <span class="text-xs font-bold text-[#7d6f64] px-3">状態</span>
-                            <select id="detailStatus" onchange="saveStatus()" class="bg-white border-2 border-transparent rounded-full px-2 py-1 outline-none text-xs focus:border-[#d4a373] text-[#5d534a] shadow-sm cursor-pointer transition-all">
-                                <option value="alive">🍀 生還</option>
-                                <option value="lost">🥀 ロスト</option>
-                                <option value="if">✨ IF</option>
-                                <option value="retired">🚪 継続不可</option>
-                                <option value="unplayed">📝 未通過</option>
-                            </select>
-                        </div>
-
-                        <div class="flex items-center gap-2">
-                            <button onclick="changeSan(-1)" class="w-8 h-8 rounded-full bg-[#fae1dd] text-[#e5989b] font-bold">−</button>
-                            <div id="detailSanBadge" class="bg-[#e9f5db] text-[#84a98c] px-4 py-1.5 rounded-full text-xs font-bold shadow-sm whitespace-nowrap"></div>
-                            <button onclick="changeSan(1)" class="w-8 h-8 rounded-full bg-[#e0f2f1] text-[#4db6ac] font-bold">＋</button>
-                        </div>
-                    </div>
+        
+        <div class="grid md:grid-cols-[240px_1fr] lg:grid-cols-[280px_1fr] gap-6 md:gap-8">
+            <div>
+                <div class="relative w-full max-w-[260px] md:max-w-full mx-auto rounded-[32px] overflow-hidden bg-[#f7f3f0] border-4 border-[#f0e9e4] shadow-inner flex items-center justify-center min-h-[260px]">
+                    <img id="detailImage" referrerpolicy="no-referrer" class="w-full h-full object-contain bg-[#f7f3f0]" />
+                    <button onclick="prevImage()" class="absolute left-2 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white rounded-full w-8 h-8 shadow">◀</button>
+                    <button onclick="nextImage()" class="absolute right-2 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white rounded-full w-8 h-8 shadow">▶</button>
                 </div>
-
-                <div class="flex gap-2 w-full md:w-auto justify-end flex-wrap">
-                    <button onclick="closeDetailModal()" class="bg-[#f0e9e4] px-4 md:px-6 py-2 rounded-full font-bold text-xs md:text-base">閉じる</button>
-                    <button onclick="deleteExplorer()" class="bg-[#fae1dd] text-[#e5989b] px-4 md:px-6 py-2 rounded-full font-bold text-xs md:text-base">削除</button>
-                    <button onclick="copyToClipboardJSON()" class="btn-primary px-4 md:px-6 py-2 rounded-full font-bold text-xs md:text-base">コマ出力</button>
-                    <button onclick="copyMarkdownStatus()" class="btn-secondary px-4 md:px-6 py-2 rounded-full font-bold text-xs md:text-base">Markdown</button>
+                <input type="file" accept="image/*" onchange="uploadImage(event)" class="mt-4 w-full max-w-[200px] md:max-w-full mx-auto block text-xs text-[#a89a8e]" />
+                
+                <div class="flex flex-wrap gap-2 mt-4 justify-center md:justify-start">
+                    <button onclick="removeBg('white')" class="bg-white border-2 border-[#e9e0d9] text-[#7d6f64] px-3 py-1.5 rounded-xl text-[10px] font-bold hover:border-[#d4a373] transition-colors shadow-sm">🤍 白背景を透過</button>
+                    <button onclick="removeBg('black')" class="bg-[#5d534a] border-2 border-[#5d534a] text-white px-3 py-1.5 rounded-xl text-[10px] font-bold hover:bg-[#3d352e] transition-colors shadow-sm">🖤 黒背景を透過</button>
+                    <button onclick="removeCurrentImage()" class="bg-[#e5989b] text-white px-3 py-1.5 rounded-xl text-[10px] font-bold hover:bg-[#d97c83] transition-colors shadow-sm">🗑️ この画像を削除</button>
+                    <button onclick="downloadCurrentImage()" class="bg-[#a3b18a] text-white px-3 py-1.5 rounded-xl text-[10px] font-bold hover:bg-[#84a98c] transition-colors shadow-sm w-full mt-1">💾 表示中の画像をダウンロード</button>
                 </div>
             </div>
             
-            <div class="grid md:grid-cols-[240px_1fr] lg:grid-cols-[280px_1fr] gap-6 md:gap-8">
-                <div>
-                    <div class="relative w-full max-w-[260px] md:max-w-full mx-auto rounded-[32px] overflow-hidden bg-[#f7f3f0] border-4 border-[#f0e9e4] shadow-inner flex items-center justify-center min-h-[260px]">
-                        <img id="detailImage" referrerpolicy="no-referrer" class="w-full h-full object-contain bg-[#f7f3f0]" />
-                        <button onclick="prevImage()" class="absolute left-2 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white rounded-full w-8 h-8 shadow">◀</button>
-                        <button onclick="nextImage()" class="absolute right-2 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white rounded-full w-8 h-8 shadow">▶</button>
+            <div class="space-y-4 md:space-y-6">
+                <div class="bg-[#fdfaf8] rounded-[24px] md:rounded-[32px] p-5 md:p-6 border-2 border-[#f0e9e4]">
+                    <h3 class="font-bold mb-3 text-[#7d6f64] text-sm md:text-base">🏷️ カスタムタグ</h3>
+                    <div class="flex flex-wrap gap-2 mb-3 min-h-[24px]" id="detailTagsList"></div>
+                    <input type="text" id="tagInput" onkeydown="handleTagInput(event)" class="w-full bg-white border-2 border-[#f0e9e4] rounded-xl p-2 text-xs outline-none focus:border-[#d4a373] shadow-sm transition-colors" placeholder="タグを入力してEnterで追加（例：チャイナドレス、シスター服など）">
+                </div>
+
+                <div class="bg-[#fdfaf8] rounded-[24px] md:rounded-[32px] p-5 md:p-6 border-2 border-[#f0e9e4]">
+                    <div class="bg-[#fff0f3] rounded-2xl p-4 mb-4 flex items-center justify-between border border-[#ffccd5]">
+                        <h3 class="font-bold text-[#ff8fa3] text-sm md:text-base">🎀 うちよそ設定</h3>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="uchiyosoCheck" onchange="toggleUchiyoso()" class="sr-only peer">
+                            <div class="w-11 h-6 bg-[#dcd0c9] rounded-full peer peer-checked:bg-[#ff8fa3] after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-full"></div>
+                        </label>
                     </div>
-                    <input type="file" accept="image/*" onchange="uploadImage(event)" class="mt-4 w-full max-w-[200px] md:max-w-full mx-auto block text-xs text-[#a89a8e]" />
+                    <input type="text" id="uchiyosoPartner" onchange="saveUchiyosoPartner()" class="w-full bg-white border-2 border-[#f0e9e4] rounded-2xl p-3 text-sm mb-6 outline-none focus:border-[#ffccd5]" placeholder="大切なひとの名前や関係性">
                     
-                    <div class="flex flex-wrap gap-2 mt-4 justify-center md:justify-start">
-    <button onclick="removeBg('white')" class="bg-white border-2 border-[#e9e0d9] text-[#7d6f64] px-3 py-1.5 rounded-xl text-[10px] font-bold hover:border-[#d4a373] transition-colors shadow-sm">🤍 白背景を透過</button>
-    <button onclick="removeBg('black')" class="bg-[#5d534a] border-2 border-[#5d534a] text-white px-3 py-1.5 rounded-xl text-[10px] font-bold hover:bg-[#3d352e] transition-colors shadow-sm">🖤 黒背景を透過</button>
-    <button onclick="removeCurrentImage()" class="bg-[#e5989b] text-white px-3 py-1.5 rounded-xl text-[10px] font-bold hover:bg-[#d97c83] transition-colors shadow-sm">🗑️ この画像を削除</button>
-    <button onclick="downloadCurrentImage()" class="bg-[#a3b18a] text-white px-3 py-1.5 rounded-xl text-[10px] font-bold hover:bg-[#84a98c] transition-colors shadow-sm w-full mt-1">💾 表示中の画像をダウンロード</button>
-</div>
+                    <h3 class="font-bold mb-2 text-[#7d6f64] text-sm md:text-base">🌱 出身シナリオ</h3>
+                    <input type="text" id="originScenario" onchange="saveOriginScenario()" class="w-full bg-white border-2 border-[#f0e9e4] rounded-2xl p-3 text-sm mb-4 outline-none focus:border-[#d4a373]" placeholder="初めてのシナリオ名">
+                    
+                    <h3 class="font-bold mb-2 text-[#7d6f64] text-sm md:text-base">📖 その他通過シナリオ</h3>
+                    <textarea id="otherScenarios" onchange="saveOtherScenarios()" class="w-full h-24 md:h-32 bg-white border-2 border-[#f0e9e4] rounded-2xl p-4 outline-none text-sm focus:border-[#d4a373]" placeholder="その後の軌跡や思い出を書き残そう"></textarea>
                 </div>
                 
-                <div class="space-y-4 md:space-y-6">
-                    <div class="bg-[#fdfaf8] rounded-[24px] md:rounded-[32px] p-5 md:p-6 border-2 border-[#f0e9e4]">
-                        <h3 class="font-bold mb-3 text-[#7d6f64] text-sm md:text-base">🏷️ カスタムタグ</h3>
-                        <div class="flex flex-wrap gap-2 mb-3 min-h-[24px]" id="detailTagsList"></div>
-                        <input type="text" id="tagInput" onkeydown="handleTagInput(event)" class="w-full bg-white border-2 border-[#f0e9e4] rounded-xl p-2 text-xs outline-none focus:border-[#d4a373] shadow-sm transition-colors" placeholder="タグを入力してEnterで追加（例：チャイナドレス、シスター服など）">
-                    </div>
+                <div class="bg-[#fdfaf8] rounded-[24px] md:rounded-[32px] p-5 md:p-6 border-2 border-[#f0e9e4]">
+                    <h3 class="font-bold mb-2 text-[#7d6f64] text-sm md:text-base">📒 自由メモ</h3>
+                    <textarea id="detailMemo" onchange="saveMemo()" class="w-full h-48 md:h-64 bg-white border-2 border-[#f0e9e4] rounded-2xl p-4 outline-none text-sm text-[#5d534a] font-sans focus:border-[#d4a373] resize-y" placeholder="自由にメモを書き込めるよ！"></textarea>
+                </div>
+                
+                <div class="bg-[#fdfaf8] rounded-[24px] md:rounded-[32px] p-5 md:p-6 border-2 border-[#f0e9e4]">
+                    <h3 class="font-bold mb-4 text-[#7d6f64] text-sm md:text-base">📊 能力値</h3>
+                    <div id="statusEditor" class="grid grid-cols-2 md:grid-cols-4 gap-3"></div>
+                </div>
 
-                    <div class="bg-[#fdfaf8] rounded-[24px] md:rounded-[32px] p-5 md:p-6 border-2 border-[#f0e9e4]">
-                        <div class="bg-[#fff0f3] rounded-2xl p-4 mb-4 flex items-center justify-between border border-[#ffccd5]">
-                            <h3 class="font-bold text-[#ff8fa3] text-sm md:text-base">🎀 うちよそ設定</h3>
-                            <label class="relative inline-flex items-center cursor-pointer">
-                                <input type="checkbox" id="uchiyosoCheck" onchange="toggleUchiyoso()" class="sr-only peer">
-                                <div class="w-11 h-6 bg-[#dcd0c9] rounded-full peer peer-checked:bg-[#ff8fa3] after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-full"></div>
-                            </label>
-                        </div>
-                        <input type="text" id="uchiyosoPartner" onchange="saveUchiyosoPartner()" class="w-full bg-white border-2 border-[#f0e9e4] rounded-2xl p-3 text-sm mb-6 outline-none focus:border-[#ffccd5]" placeholder="大切なひとの名前や関係性">
-                        
-                        <h3 class="font-bold mb-2 text-[#7d6f64] text-sm md:text-base">🌱 出身シナリオ</h3>
-                        <input type="text" id="originScenario" onchange="saveOriginScenario()" class="w-full bg-white border-2 border-[#f0e9e4] rounded-2xl p-3 text-sm mb-4 outline-none focus:border-[#d4a373]" placeholder="初めてのシナリオ名">
-                        
-                        <h3 class="font-bold mb-2 text-[#7d6f64] text-sm md:text-base">📖 その他通過シナリオ</h3>
-                        <textarea id="otherScenarios" onchange="saveOtherScenarios()" class="w-full h-24 md:h-32 bg-white border-2 border-[#f0e9e4] rounded-2xl p-4 outline-none text-sm focus:border-[#d4a373]" placeholder="その後の軌跡や思い出を書き残そう"></textarea>
-                    </div>
-                    
-                    <div class="bg-[#fdfaf8] rounded-[24px] md:rounded-[32px] p-5 md:p-6 border-2 border-[#f0e9e4]">
-                        <h3 class="font-bold mb-2 text-[#7d6f64] text-sm md:text-base">📒 自由メモ</h3>
-                        <textarea id="detailMemo" onchange="saveMemo()" class="w-full h-48 md:h-64 bg-white border-2 border-[#f0e9e4] rounded-2xl p-4 outline-none text-sm text-[#5d534a] font-sans focus:border-[#d4a373] resize-y" placeholder="自由にメモを書き込めるよ！"></textarea>
-                    </div>
-                    
-                    <div class="bg-[#fdfaf8] rounded-[24px] md:rounded-[32px] p-5 md:p-6 border-2 border-[#f0e9e4]">
-                        <h3 class="font-bold mb-4 text-[#7d6f64] text-sm md:text-base">📊 能力値</h3>
-                        <div id="statusEditor" class="grid grid-cols-2 md:grid-cols-4 gap-3"></div>
-                    </div>
-
-                    <div class="bg-[#fdfaf8] rounded-[24px] md:rounded-[32px] p-5 md:p-6 border-2 border-[#f0e9e4]">
-                        <h3 class="font-bold mb-4 text-[#7d6f64] text-sm md:text-base">🛠 技能一覧</h3>
-                        <div id="detailSkills" class="grid grid-cols-1 sm:grid-cols-2 gap-2 md:gap-3 text-xs"></div>
-                    </div>
+                <div class="bg-[#fdfaf8] rounded-[24px] md:rounded-[32px] p-5 md:p-6 border-2 border-[#f0e9e4]">
+                    <h3 class="font-bold mb-4 text-[#7d6f64] text-sm md:text-base">🛠 技能一覧</h3>
+                    <div id="detailSkills" class="grid grid-cols-1 sm:grid-cols-2 gap-2 md:gap-3 text-xs"></div>
                 </div>
             </div>
         </div>
     </div>
+</div>
 
 <script>
 // ==========================================
@@ -614,25 +606,31 @@ function switchTab(tabId) {
     const activeBtn = document.getElementById('btn-' + tabId);
     activeBtn.className = "w-12 h-12 flex items-center justify-center rounded-full transition-all duration-200 bg-[#f0e9e4] text-[#d4a373] font-bold hover:scale-110";
 
-    // ★ 以下の3行を追加：キャラシ作成画面（gen）ではジャンプボタンを隠す
+    // キャラシ作成画面（gen）ではジャンプボタンを隠す
     const jumpLinks = document.getElementById('mobile-jump-links');
     if (jumpLinks) {
         jumpLinks.style.display = tabId === 'sheet' ? '' : 'none';
     }
 }
+
 function toggleMobileHeader() {
     const controls = document.getElementById('header-controls');
     const icon = document.getElementById('mobile-toggle-icon');
 
-    // スマホ専用の mobile-closed クラスを付け外しする
-    controls.classList.toggle('mobile-closed');
+    // 現在 hidden-area クラスがついているか確認
+    const isHidden = controls.classList.contains('hidden-area');
 
-    if (controls.classList.contains('mobile-closed')) {
-        icon.textContent = '🔽';
-    } else {
+    if (isHidden) {
+        // 非表示なら表示する
+        controls.classList.remove('hidden-area');
         icon.textContent = '🔼';
+    } else {
+        // 表示中なら隠す
+        controls.classList.add('hidden-area');
+        icon.textContent = '🔽';
     }
 }
+
 let draggingId = null;
 let currentGenderFilter = "";
 let currentTagFilter = "";
@@ -702,13 +700,16 @@ document.querySelectorAll('.column, #header-container').forEach(col => {
         resizerV.addEventListener('dblclick', () => {
             if (col.id === 'header-container') {
                 const controls = document.getElementById('header-controls');
-                const actions = document.getElementById('header-actions');
+                const icon = document.getElementById('mobile-toggle-icon');
+                
                 if (controls) {
-                    controls.classList.toggle('hidden');
-                    if (actions) actions.classList.toggle('border-b', !controls.classList.contains('hidden'));
-                    if (actions) actions.classList.toggle('pb-3', !controls.classList.contains('hidden'));
+                    controls.classList.toggle('hidden-area');
                     
-                    viewSettings.headerMinimized = controls.classList.contains('hidden');
+                    if (icon) {
+                        icon.textContent = controls.classList.contains('hidden-area') ? '🔽' : '🔼';
+                    }
+                    
+                    viewSettings.headerMinimized = controls.classList.contains('hidden-area');
                     localStorage.setItem("viewSettings", JSON.stringify(viewSettings));
                 }
             } else {
@@ -740,11 +741,10 @@ function applyViewSettings() {
 
         if (viewSettings.headerMinimized) {
             const controls = document.getElementById('header-controls');
-            const actions = document.getElementById('header-actions');
+            const icon = document.getElementById('mobile-toggle-icon');
             if (controls) {
-                controls.classList.add('hidden');
-                if (actions) actions.classList.remove('border-b');
-                if (actions) actions.classList.remove('pb-3');
+                controls.classList.add('hidden-area');
+                if (icon) icon.textContent = '🔽';
             }
         }
     }
