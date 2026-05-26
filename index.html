@@ -1,0 +1,1819 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>探索者管理 ＆ ステータス生成ツール</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Kiwi+Maru:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        body { 
+            background-color: #f7f3f0; 
+            font-family: 'Kiwi Maru', 'Hiragino Sans', 'Meiryo', sans-serif;
+            color: #5d534a;
+        }
+        
+        /* スクロールバーのかわいいカスタマイズ */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #f7f3f0; }
+        ::-webkit-scrollbar-thumb { background: #dcd0c9; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #d4a373; }
+        
+        /* キャラシ生成ツール用 */
+        .gen-checkbox input:checked + div {
+            background-color: #fae1dd;
+            border-color: #e5989b;
+            color: #e5989b;
+            font-weight: bold;
+        }
+
+        /* ヘッダー関連 */
+        #header-container { 
+            background-color: #ffffff !important;
+            border-bottom: 3px solid #e9e0d9;
+        }
+        #header-container button:not(.close-btn), #header-container label {
+            height: 32px; display: inline-flex; align-items: center; justify-content: center; white-space: nowrap;
+            border-radius: 9999px;
+            padding: 0 12px;
+            transition: all 0.2s;
+        }
+        .close-btn { display: inline-flex; align-items: center; justify-content: center; }
+
+        /* 削除ボタン専用スタイル */
+        #trash {
+            height: 32px; padding: 0 16px; background-color: #fae1dd; border: 2px solid #ffb5a7;
+            color: #e5989b; border-radius: 9999px; font-weight: bold; display: inline-flex;
+            align-items: center; justify-content: center; position: relative; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            cursor: default;
+        }
+        #trash::after {
+            content: "ドラッグで削除（スマホは詳細から）";
+            position: absolute; bottom: -36px; left: 50%; transform: translateX(-50%);
+            background-color: #5d534a; color: white; font-size: 10px; padding: 4px 12px;
+            border-radius: 8px; white-space: nowrap; opacity: 0; visibility: hidden;
+            transition: opacity 0.2s; pointer-events: none; z-index: 50;
+        }
+        #trash:hover::after { opacity: 1; visibility: visible; }
+        #trash.drag-over { background: #ffb5a7; color: white; transform: scale(1.15) rotate(5deg); }
+
+        /* ボタン色 */
+        .btn-primary { background-color: #d4a373; color: white; }
+        .btn-primary:hover { background-color: #bc8a5f; }
+        .btn-secondary { background-color: #a3b18a; color: white; }
+        .btn-secondary:hover { background-color: #84a98c; }
+        .btn-accent { background-color: #ccd5ae; color: #5d534a; }
+
+        /* リサイズバー */
+        .resizer {
+            width: 6px; height: 100%; position: absolute; right: 0; top: 0; cursor: col-resize; transition: background 0.2s; z-index: 10;
+        }
+        .resizer:hover { background: #d4a373; }
+        .resizer-v {
+            width: 100%; height: 6px; position: absolute; left: 0; bottom: 0; cursor: row-resize; transition: background 0.2s; z-index: 10;
+        }
+        .resizer-v:hover { background: #d4a373; }
+
+        #header-container .resizer-v { height: 10px; bottom: -5px; background: transparent; }
+        #header-container .resizer-v:hover { background: rgba(212, 163, 115, 0.15); }
+        #header-container .resizer-v::after {
+            content: "↕️ ダブルクリックで最小化 / 展開";
+            position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
+            background-color: #5d534a; color: white; font-size: 10px; padding: 6px 14px;
+            border-radius: 12px; white-space: nowrap; opacity: 0; visibility: hidden;
+            transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); pointer-events: none; z-index: 100;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        #header-container .resizer-v:hover::after { opacity: 1; visibility: visible; top: 14px; }
+
+        /* スマホ対応：カラム幅が画面幅をオーバーしないように制限 */
+        .column { 
+            position: relative; flex-shrink: 0; background-color: white; 
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05); max-width: 90vw;
+        }
+
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+        /* 技能絞り込み */
+        #skillFilterList label { height: 24px; font-size: 11px; }
+        #skillFilterList input[type="checkbox"] { accent-color: #d4a373; }
+
+        /* カード */
+        .dragging { opacity: 0.5; transform: scale(0.95); }
+        .explorer-list { 
+            display: grid; gap: 12px; 
+            grid-template-columns: repeat(auto-fill, minmax(min(140px, 100%), 1fr));
+        }
+        @media (min-width: 768px) {
+            .explorer-list { grid-template-columns: repeat(auto-fill, minmax(min(170px, 100%), 1fr)); }
+        }
+        .card {
+            background: white; border: 2px solid #f0e9e4; border-radius: 20px; padding: 10px;
+            cursor: grab; transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .card:hover {
+            transform: translateY(-2px); box-shadow: 0 6px 15px rgba(212, 163, 115, 0.15); border-color: #d4a373;
+        }
+        .card-uchiyoso { background: #fff0f3; border-color: #ffccd5; }
+
+        input[type="number"]::-webkit-inner-spin-button, 
+        input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+    </style>
+</head>
+<body class="flex h-screen overflow-hidden">
+
+    <nav id="sidebar" class="relative w-16 bg-white border-r-[3px] border-[#e9e0d9] flex flex-col items-center py-6 gap-4 z-50 shrink-0 h-full">
+        
+        <div class="relative group">
+            <button id="btn-sheet" onclick="switchTab('sheet')" class="w-12 h-12 flex items-center justify-center rounded-full transition-all duration-200 bg-[#f0e9e4] text-[#d4a373] font-bold hover:scale-110">
+                <span class="text-xl">📋</span>
+            </button>
+            <div class="absolute left-full top-1/2 -translate-y-1/2 ml-3 bg-[#5d534a] text-white text-xs px-3 py-2 rounded-xl whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 shadow-lg z-50 pointer-events-none">
+                探索者バックアップ
+            </div>
+        </div>
+        
+        <div class="relative group">
+            <button id="btn-gen" onclick="switchTab('gen')" class="w-12 h-12 flex items-center justify-center rounded-full transition-all duration-200 text-[#a09385] hover:bg-[#f7f3f0] font-bold hover:scale-110">
+                <span class="text-xl">🎲</span>
+            </button>
+            <div class="absolute left-full top-1/2 -translate-y-1/2 ml-3 bg-[#5d534a] text-white text-xs px-3 py-2 rounded-xl whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 shadow-lg z-50 pointer-events-none">
+                キャラシ作成ツール
+            </div>
+        </div>
+
+    </nav>
+
+    <main class="flex-1 h-screen overflow-y-auto relative bg-[#f7f3f0]">
+        
+        <div id="tab-sheet" class="block w-full h-full relative">
+            <div class="p-3 md:p-6">
+                <div class="sticky top-0 z-40 px-3 md:px-5 border-b h-auto py-4 rounded-3xl mb-6 shadow-sm relative transition-all duration-300" id="header-container">
+                    <div class="flex flex-col w-full gap-3 transition-all duration-300" id="header-inner">
+                        
+                        <div class="flex flex-col md:flex-row items-center justify-between gap-3 border-b border-[#f0e9e4] pb-3" id="header-actions">
+                            <div class="flex flex-col md:flex-row items-center gap-4 w-full md:w-auto">
+                                <div class="text-center md:text-left shrink-0">
+                                    <h1 class="text-lg font-bold leading-tight text-[#5d534a]">☕ 探索者バックアップ</h1>
+                                    <p class="text-[#a89a8e] text-[10px] leading-tight font-medium">Iachara/Charaeno</p>
+                                </div>
+                                <div class="flex gap-2 flex-wrap justify-center">
+                                    <div class="relative group">
+                                        <button onclick="exportData()" class="btn-primary font-bold shadow-sm text-[11px]">📔 バックアップ作成</button>
+                                        <div class="absolute left-1/2 -translate-x-1/2 top-full mt-2 bg-[#5d534a] text-white text-[10px] px-3 py-2 rounded-xl whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 shadow-lg z-50">支援ツール専用のバックアップファイルを作成します</div>
+                                    </div>
+                                    <div class="relative group">
+                                        <button onclick="importBackup()" class="btn-secondary font-bold shadow-sm text-[11px]">♻️ 復元</button>
+                                        <div class="absolute left-1/2 -translate-x-1/2 top-full mt-2 bg-[#5d534a] text-white text-[10px] px-3 py-2 rounded-xl whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 shadow-lg z-50">【バックアップ作成】で作成したファイルを読み込みます</div>
+                                    </div>
+                                    <div class="relative group">
+                                        <button onclick="importTxtFile()" class="btn-accent font-bold shadow-sm text-[11px]">📄 いあきゃらTXT読込</button>
+                                        <div class="absolute left-1/2 -translate-x-1/2 top-full mt-2 bg-[#5d534a] text-white text-[10px] px-3 py-2 rounded-xl whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 shadow-lg z-50">【いあきゃらキャラシ→出力→ファイルに出力】のテキストを読み込みます</div>
+                                    </div>
+                                    <div class="relative group">
+                                        <button onclick="importCharaenoFile()" class="btn-accent font-bold shadow-sm text-[11px]">🌸 ココフォリア読込</button>
+                                        <div class="absolute left-1/2 -translate-x-1/2 top-full mt-2 bg-[#5d534a] text-white text-[10px] px-3 py-2 rounded-xl whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 shadow-lg z-50">【いあきゃら/キャラエノ】のココフォリア用データを貼り付けます</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div id="trash" class="hidden md:inline-flex shadow-sm shrink-0 ml-auto">🧸 削除</div>
+                        </div>
+
+                        <div id="header-controls" class="flex items-start flex-wrap gap-3 w-full text-[10px] transition-opacity duration-300">
+                            
+                            <div class="flex items-center bg-[#f0e9e4] rounded-2xl px-3 py-1.5 gap-2 text-[#7d6f64] w-full sm:w-auto shrink-0">
+                                <span class="font-bold border-r border-[#dcd0c9] pr-2 whitespace-nowrap">Search</span>
+                                <input type="text" id="searchInput" oninput="render()" placeholder="名前・メモ検索..." class="bg-transparent outline-none text-xs w-full sm:w-32 md:w-40 placeholder:text-[#b7aaa0]">
+                            </div>
+
+                            <div class="flex items-center flex-wrap bg-[#f0e9e4] rounded-2xl px-3 py-1.5 gap-1 text-[#7d6f64] shrink-0">
+                                <span class="font-bold border-r border-[#dcd0c9] pr-2 mr-1 whitespace-nowrap">Gender</span>
+                                <button id="btn-gender-all" class="hover:text-[#d4a373] font-bold px-2 rounded-full whitespace-nowrap" onclick="setGenderFilter('')">全</button>
+                                <button id="btn-gender-male" class="hover:text-[#d4a373] px-2 rounded-full whitespace-nowrap" onclick="setGenderFilter('男性')">男</button>
+                                <button id="btn-gender-female" class="hover:text-[#d4a373] px-2 rounded-full whitespace-nowrap" onclick="setGenderFilter('女性')">女</button>
+                            </div>
+
+                            <div class="flex items-center flex-wrap bg-[#f0e9e4] rounded-2xl px-3 py-1.5 gap-2 text-[#7d6f64] shrink-0">
+                                <span class="font-bold border-r border-[#dcd0c9] pr-2 whitespace-nowrap">Tag</span>
+                                <button id="btn-tag-all" class="hover:text-[#d4a373] font-bold whitespace-nowrap px-1" onclick="setTagFilter('')">全</button>
+                                <div id="tagFilterContainer" class="flex flex-wrap gap-1 items-center"></div>
+                            </div>
+
+                            <div class="flex items-center flex-wrap bg-[#f0e9e4] rounded-2xl px-3 py-1.5 gap-1 text-[#7d6f64] shrink-0">
+                                <span class="font-bold border-r border-[#dcd0c9] pr-2 mr-1 hidden md:inline whitespace-nowrap">Sort</span>
+                                <button class="hover:text-[#d4a373] px-1.5 rounded-full whitespace-nowrap" onclick="setSort('age')" data-sort="age">年齢<span class="sort-icon"></span></button>
+                                <button class="hover:text-[#d4a373] px-1.5 rounded-full whitespace-nowrap" onclick="setSort('san')" data-sort="san">SAN</button>
+                                <button class="hover:text-[#d4a373] px-1.5 rounded-full whitespace-nowrap" onclick="setSort('str')" data-sort="str">STR</button>
+                                <button class="hover:text-[#d4a373] px-1.5 rounded-full whitespace-nowrap" onclick="setSort('dex')" data-sort="dex">DEX</button>
+                                <button class="hover:text-[#d4a373] px-1.5 rounded-full whitespace-nowrap" onclick="setSort('int')" data-sort="int">INT</button>
+                                <button class="hover:text-[#d4a373] px-1.5 rounded-full whitespace-nowrap" onclick="setSort('con')" data-sort="con">CON</button>
+                                <button class="hover:text-[#d4a373] px-1.5 rounded-full whitespace-nowrap" onclick="setSort('app')" data-sort="app">APP</button>
+                                <button class="hover:text-[#d4a373] px-1.5 rounded-full whitespace-nowrap" onclick="setSort('pow')" data-sort="pow">POW</button>
+                                <button class="hover:text-[#d4a373] px-1.5 rounded-full whitespace-nowrap" onclick="setSort('siz')" data-sort="siz">SIZ</button>
+                                <button class="hover:text-[#d4a373] px-1.5 rounded-full whitespace-nowrap" onclick="setSort('edu')" data-sort="edu">EDU</button>
+                                <button onclick="clearSort()" class="text-[#e5989b] font-bold close-btn pl-2 ml-1 text-sm hover:scale-110 transition-transform border-l border-[#dcd0c9] whitespace-nowrap">×</button>
+                            </div>
+
+                            <div class="flex items-center flex-wrap bg-[#f0e9e4] rounded-2xl px-3 py-1.5 gap-2 text-[#7d6f64] shrink-0">
+                                <span class="font-bold border-r border-[#dcd0c9] pr-2 hidden md:inline whitespace-nowrap">View</span>
+                                <label class="flex items-center gap-1 cursor-pointer hover:text-[#d4a373] whitespace-nowrap"><input type="checkbox" checked onchange="updateViewSettings('alive', this.checked)" value="alive">生還</label>
+                                <label class="flex items-center gap-1 cursor-pointer hover:text-[#d4a373] whitespace-nowrap"><input type="checkbox" checked onchange="updateViewSettings('lost', this.checked)" value="lost">ロスト</label>
+                                <label class="flex items-center gap-1 cursor-pointer hover:text-[#d4a373] whitespace-nowrap"><input type="checkbox" onchange="updateViewSettings('if', this.checked)" value="if">IF</label>
+                                <label class="flex items-center gap-1 cursor-pointer hover:text-[#d4a373] whitespace-nowrap"><input type="checkbox" onchange="updateViewSettings('retired', this.checked)" value="retired">継続</label>
+                                <label class="flex items-center gap-1 cursor-pointer hover:text-[#d4a373] whitespace-nowrap"><input type="checkbox" checked onchange="updateViewSettings('unplayed', this.checked)" value="unplayed">未通過</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="resizer-v hidden md:block" style="cursor: pointer;"></div>
+                </div>
+
+                <div class="mt-4">
+                    <div id="skillFilterContainer" class="column rounded-3xl p-3 md:p-5 w-full md:w-[1000px] h-[150px] flex flex-col overflow-hidden border-2 border-[#e9e0d9]">
+                        <div class="flex justify-between items-center mb-3 shrink-0 border-b border-[#f0e9e4] pb-2">
+                            <div class="font-bold text-xs text-[#a89a8e] uppercase tracking-widest">Skill Filter</div>
+                            <input type="text" id="skillSearchInput" oninput="filterSkills()" class="bg-[#fdfaf8] border-2 border-[#f0e9e4] rounded-full px-3 py-1 outline-none text-[10px] md:text-xs w-32 md:w-48 focus:border-[#d4a373] text-[#5d534a] shadow-sm transition-all" placeholder="🔍 技能名を検索...">
+                        </div>
+                        <div id="skillFilterList" class="grid gap-x-4 overflow-y-auto flex-1 pr-1" style="grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));"></div>
+                        <div class="resizer hidden md:block"></div>
+                        <div class="resizer-v hidden md:block"></div>
+                    </div>
+                </div>
+
+                <div class="flex flex-nowrap gap-4 md:gap-6 overflow-x-auto py-8 items-start pb-12">
+                    <div class="column rounded-[32px] p-4 md:p-5 min-h-[600px] w-[85vw] md:w-[550px]" id="col-alive" data-status="alive">
+                        <h2 class="text-sm font-bold mb-4 border-b-2 border-[#e9f5db] pb-2 text-[#84a98c]">🍀 生還した探索者</h2>
+                        <div class="explorer-list items-start"></div>
+                        <div class="resizer hidden md:block"></div>
+                    </div>
+                    
+                    <div class="column rounded-[32px] p-4 md:p-5 min-h-[600px] w-[85vw] md:w-[250px]" id="col-lost" data-status="lost">
+                        <h2 class="text-sm font-bold mb-4 border-b-2 border-[#fae1dd] pb-2 text-[#e5989b]">🥀 ロスト</h2>
+                        <div class="explorer-list items-start"></div>
+                        <div class="resizer hidden md:block"></div>
+                    </div>
+
+                    <div class="column rounded-[32px] p-4 md:p-5 min-h-[600px] w-[85vw] md:w-[250px] hidden" id="col-if" data-status="if">
+                        <h2 class="text-sm font-bold mb-4 border-b-2 border-[#e0f2f1] pb-2 text-[#4db6ac]">✨ IF</h2>
+                        <div class="explorer-list items-start"></div>
+                        <div class="resizer hidden md:block"></div>
+                    </div>
+
+                    <div class="column rounded-[32px] p-4 md:p-5 min-h-[600px] w-[85vw] md:w-[250px] hidden" id="col-retired" data-status="retired">
+                        <h2 class="text-sm font-bold mb-4 border-b-2 border-[#fff3e0] pb-2 text-[#fb8c00]">🚪 継続不可</h2>
+                        <div class="explorer-list items-start"></div>
+                        <div class="resizer hidden md:block"></div>
+                    </div>
+
+                    <div class="column rounded-[32px] p-4 md:p-5 min-h-[600px] w-[85vw] md:w-[250px]" id="col-unplayed" data-status="unplayed">
+                        <h2 class="text-sm font-bold mb-4 border-b-2 border-[#f0f0f0] pb-2 text-[#a89a8e]">📝 未通過</h2>
+                        <div class="explorer-list items-start"></div>
+                        <div class="resizer hidden md:block"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="tab-gen" class="hidden w-full max-w-4xl mx-auto p-4 md:p-8">
+            <h2 class="text-2xl font-bold text-[#d4a373] mb-6 text-center md:text-left">🎲 キャラシ作成補助ツール</h2>
+
+            <div class="bg-white border-[3px] border-[#e9e0d9] rounded-2xl p-5 md:p-7 shadow-sm mb-6">
+                <div class="mb-6">
+                    <label class="block font-bold text-[#d4a373] border-b-2 border-[#f0e9e4] pb-2 mb-4 text-lg">1. どんな人物ですか？（各+3補正）</label>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        <label class="gen-checkbox cursor-pointer relative">
+                            <input type="checkbox" id="chk_STR" class="peer hidden">
+                            <div class="border-2 border-[#e9e0d9] bg-[#f7f3f0] text-[#5d534a] rounded-xl p-3 text-center transition-colors text-sm hover:bg-[#f0e9e4]">STR (力持ち)</div>
+                        </label>
+                        <label class="gen-checkbox cursor-pointer relative">
+                            <input type="checkbox" id="chk_CON" class="peer hidden">
+                            <div class="border-2 border-[#e9e0d9] bg-[#f7f3f0] text-[#5d534a] rounded-xl p-3 text-center transition-colors text-sm hover:bg-[#f0e9e4]">CON (タフ)</div>
+                        </label>
+                        <label class="gen-checkbox cursor-pointer relative">
+                            <input type="checkbox" id="chk_POW" class="peer hidden">
+                            <div class="border-2 border-[#e9e0d9] bg-[#f7f3f0] text-[#5d534a] rounded-xl p-3 text-center transition-colors text-sm hover:bg-[#f0e9e4]">POW (精神力)</div>
+                        </label>
+                        <label class="gen-checkbox cursor-pointer relative">
+                            <input type="checkbox" id="chk_DEX" class="peer hidden">
+                            <div class="border-2 border-[#e9e0d9] bg-[#f7f3f0] text-[#5d534a] rounded-xl p-3 text-center transition-colors text-sm hover:bg-[#f0e9e4]">DEX (俊敏)</div>
+                        </label>
+                        <label class="gen-checkbox cursor-pointer relative">
+                            <input type="checkbox" id="chk_APP" class="peer hidden">
+                            <div class="border-2 border-[#e9e0d9] bg-[#f7f3f0] text-[#5d534a] rounded-xl p-3 text-center transition-colors text-sm hover:bg-[#f0e9e4]">APP (外見良)</div>
+                        </label>
+                        <label class="gen-checkbox cursor-pointer relative">
+                            <input type="checkbox" id="chk_SIZ" class="peer hidden">
+                            <div class="border-2 border-[#e9e0d9] bg-[#f7f3f0] text-[#5d534a] rounded-xl p-3 text-center transition-colors text-sm hover:bg-[#f0e9e4]">SIZ (体格良)</div>
+                        </label>
+                        <label class="gen-checkbox cursor-pointer relative">
+                            <input type="checkbox" id="chk_INT" class="peer hidden">
+                            <div class="border-2 border-[#e9e0d9] bg-[#f7f3f0] text-[#5d534a] rounded-xl p-3 text-center transition-colors text-sm hover:bg-[#f0e9e4]">INT (頭脳派)</div>
+                        </label>
+                        <label class="gen-checkbox cursor-pointer relative">
+                            <input type="checkbox" id="chk_EDU" class="peer hidden">
+                            <div class="border-2 border-[#e9e0d9] bg-[#f7f3f0] text-[#5d534a] rounded-xl p-3 text-center transition-colors text-sm hover:bg-[#f0e9e4]">EDU (高学歴)</div>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="mb-6">
+                    <label class="block font-bold text-[#d4a373] border-b-2 border-[#f0e9e4] pb-2 mb-4 text-lg">2. 職業を選択</label>
+                    <select id="gen-jobSelect" class="w-full border-2 border-[#e9e0d9] rounded-xl px-4 py-3 text-[#5d534a] bg-[#f7f3f0] focus:outline-none focus:border-[#d4a373] focus:bg-white transition-colors cursor-pointer"></select>
+                </div>
+
+                <button onclick="rollAndSetup()" class="w-full bg-[#d4a373] text-white font-bold rounded-full py-4 px-6 hover:scale-[1.02] transition-transform shadow-sm text-lg">
+                    🎲 ダイスロール ＆ 割り振り画面へ
+                </button>
+            </div>
+
+            <div id="gen-content" class="hidden">
+                <div class="bg-white border-[3px] border-[#e9e0d9] rounded-2xl p-5 md:p-7 shadow-sm mb-6">
+                    <h3 class="font-bold text-[#d4a373] border-b-2 border-[#f0e9e4] pb-2 mb-4 text-lg">算出ステータス</h3>
+                    <div id="gen-statsGrid" class="grid grid-cols-4 md:grid-cols-8 gap-2 mb-4"></div>
+                    <div id="gen-derivedGrid" class="grid grid-cols-3 gap-2 border-t-2 border-dashed border-[#e9e0d9] pt-4"></div>
+                </div>
+
+                <div class="bg-white border-[3px] border-[#e9e0d9] rounded-2xl p-5 md:p-7 shadow-sm mb-6">
+                    <h3 class="font-bold text-[#d4a373] border-b-2 border-[#f0e9e4] pb-2 mb-4 text-lg">職業技能の割り振りシミュレータ</h3>
+                    
+                    <div class="bg-[#f0e9e4] border-2 border-[#e9e0d9] rounded-xl p-4 text-center mb-6">
+                        <div class="text-[#d4a373] font-bold text-xl mb-1">職業技能P: <span id="gen-resJobP" class="text-2xl"></span></div>
+                        <div id="gen-resFormula" class="text-[#a09385] text-sm"></div>
+                    </div>
+                    
+                    <ul class="text-sm text-[#a09385] mb-6 space-y-1 ml-4 list-disc marker:text-[#e5989b]">
+                        <li><b class="text-[#5d534a]">目標値（合計値）</b>が決まっている技能は数値を入力してください。</li>
+                        <li>任意の技能は名前を入力すると、<b>自動で初期値が反映されます。</b></li>
+                        <li>目標値が空欄の技能には、残りポイントが自動で分配されます。</li>
+                    </ul>
+
+                    <div class="overflow-x-auto mb-6 rounded-xl border-2 border-[#e9e0d9]">
+                        <table class="w-full text-sm text-left">
+                            <thead class="bg-[#f0e9e4] text-[#5d534a]">
+                                <tr>
+                                    <th class="p-3 font-bold">技能名</th>
+                                    <th class="p-3 font-bold text-center w-20">初期値</th>
+                                    <th class="p-3 font-bold text-center w-28">目標値(固定)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="gen-allocTbody" class="divide-y border-[#e9e0d9]"></tbody>
+                        </table>
+                    </div>
+
+                    <div class="mb-6">
+                        <label class="block font-bold text-[#5d534a] mb-2 text-sm">割り振り方針（未入力の技能への分配方法）</label>
+                        <select id="gen-allocPolicy" class="w-full border-2 border-[#e9e0d9] rounded-xl px-4 py-3 text-[#5d534a] bg-[#f7f3f0] focus:outline-none focus:border-[#e5989b] focus:bg-white transition-colors cursor-pointer">
+                            <option value="even">すべて均等に割り振る</option>
+                            <option value="five">5の倍数で綺麗に割り振る</option>
+                            <option value="odd">可能な限り奇数ゾロ目（11, 33, 55...）になるよう割り振る</option>
+                        </select>
+                    </div>
+
+                    <button onclick="runAllocation()" class="w-full bg-[#e5989b] text-white font-bold rounded-full py-4 px-6 hover:scale-[1.02] transition-transform shadow-sm text-lg">
+                        ✨ 割り振り案を生成する
+                    </button>
+
+                    <div id="gen-resultArea" class="hidden mt-8">
+                        <h3 class="font-bold text-[#e5989b] border-b-2 border-[#fae1dd] pb-2 mb-4 text-lg">🎉 割り振り結果</h3>
+                        <div id="gen-remWarningArea"></div>
+                        <div id="gen-resultList" class="space-y-2"></div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </main>
+
+    <div id="importModal" class="hidden fixed inset-0 bg-[#5d534a]/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-[40px] p-6 md:p-8 w-full max-w-3xl shadow-2xl border-4 border-[#f0e9e4]">
+            <h2 class="text-2xl font-bold mb-4 text-[#5d534a]">探索者のインポート</h2>
+            <textarea id="jsonInput" class="w-full h-48 md:h-72 bg-[#fdfaf8] border-2 border-[#f0e9e4] rounded-3xl p-5 outline-none font-mono text-xs focus:border-[#d4a373]" placeholder="ここにコピーしたテキストを貼り付けてね！"></textarea>
+            <div class="flex justify-end gap-3 mt-6">
+                <button onclick="closeImportModal()" class="px-6 py-3 rounded-full bg-[#f0e9e4] font-bold">とじる</button>
+                <button onclick="importJson()" class="px-8 py-3 rounded-full btn-primary font-bold shadow-md">読み込む！</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="detailModal" onclick="outsideClose(event)" class="hidden fixed inset-0 bg-[#5d534a]/60 backdrop-blur-sm flex items-center justify-center p-2 md:p-4 z-50">
+        <div class="bg-white rounded-[32px] md:rounded-[40px] p-5 md:p-8 w-full max-w-5xl max-h-[90vh] md:max-h-[95vh] overflow-y-auto shadow-2xl border-4 border-[#f0e9e4]">
+            
+            <div class="flex flex-col md:flex-row justify-between items-start gap-4 mb-6 md:mb-8">
+                <div class="w-full">
+                    <h2 id="detailName" class="text-2xl md:text-3xl font-bold text-[#5d534a] mb-3"></h2>
+                    
+                    <div class="flex items-center gap-2 md:gap-3 flex-wrap">
+                        <div class="flex items-center bg-[#f0e9e4] rounded-full p-1 w-full sm:w-auto">
+                            <span class="text-xs font-bold text-[#7d6f64] px-3 whitespace-nowrap">職業</span>
+                            <input type="text" id="detailOccupation" onchange="saveOccupation()" class="bg-white border-2 border-transparent rounded-full px-3 py-1 outline-none text-xs focus:border-[#d4a373] w-full sm:w-40 md:w-48 text-[#5d534a] shadow-sm transition-all" placeholder="職業未設定">
+                        </div>
+                        
+                        <div class="flex items-center bg-[#f0e9e4] rounded-full p-1">
+                            <span class="text-xs font-bold text-[#7d6f64] px-3">年齢</span>
+                            <input type="number" id="detailAge" onchange="saveAge()" class="bg-white border-2 border-transparent rounded-full px-3 py-1 outline-none text-xs text-center focus:border-[#d4a373] w-12 text-[#5d534a] shadow-sm transition-all" placeholder="0">
+                            <span class="text-xs font-bold text-[#7d6f64] pr-3 pl-1">歳</span>
+                        </div>
+
+                        <div class="flex items-center bg-[#f0e9e4] rounded-full p-1">
+                            <span class="text-xs font-bold text-[#7d6f64] px-3">状態</span>
+                            <select id="detailStatus" onchange="saveStatus()" class="bg-white border-2 border-transparent rounded-full px-2 py-1 outline-none text-xs focus:border-[#d4a373] text-[#5d534a] shadow-sm cursor-pointer transition-all">
+                                <option value="alive">🍀 生還</option>
+                                <option value="lost">🥀 ロスト</option>
+                                <option value="if">✨ IF</option>
+                                <option value="retired">🚪 継続不可</option>
+                                <option value="unplayed">📝 未通過</option>
+                            </select>
+                        </div>
+
+                        <div class="flex items-center gap-2">
+                            <button onclick="changeSan(-1)" class="w-8 h-8 rounded-full bg-[#fae1dd] text-[#e5989b] font-bold">−</button>
+                            <div id="detailSanBadge" class="bg-[#e9f5db] text-[#84a98c] px-4 py-1.5 rounded-full text-xs font-bold shadow-sm whitespace-nowrap"></div>
+                            <button onclick="changeSan(1)" class="w-8 h-8 rounded-full bg-[#e0f2f1] text-[#4db6ac] font-bold">＋</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex gap-2 w-full md:w-auto justify-end flex-wrap">
+                    <button onclick="closeDetailModal()" class="bg-[#f0e9e4] px-4 md:px-6 py-2 rounded-full font-bold text-xs md:text-base">閉じる</button>
+                    <button onclick="deleteExplorer()" class="bg-[#fae1dd] text-[#e5989b] px-4 md:px-6 py-2 rounded-full font-bold text-xs md:text-base">削除</button>
+                    <button onclick="copyToClipboardJSON()" class="btn-primary px-4 md:px-6 py-2 rounded-full font-bold text-xs md:text-base">コマ出力</button>
+                    <button onclick="copyMarkdownStatus()" class="btn-secondary px-4 md:px-6 py-2 rounded-full font-bold text-xs md:text-base">Markdown</button>
+                </div>
+            </div>
+            
+            <div class="grid md:grid-cols-[240px_1fr] lg:grid-cols-[280px_1fr] gap-6 md:gap-8">
+                <div>
+                    <div class="relative w-full max-w-[260px] md:max-w-full mx-auto rounded-[32px] overflow-hidden bg-[#f7f3f0] border-4 border-[#f0e9e4] shadow-inner flex items-center justify-center min-h-[260px]">
+                        <img id="detailImage" referrerpolicy="no-referrer" class="w-full h-full object-contain bg-[#f7f3f0]" />
+                        <button onclick="prevImage()" class="absolute left-2 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white rounded-full w-8 h-8 shadow">◀</button>
+                        <button onclick="nextImage()" class="absolute right-2 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white rounded-full w-8 h-8 shadow">▶</button>
+                    </div>
+                    <input type="file" accept="image/*" onchange="uploadImage(event)" class="mt-4 w-full max-w-[200px] md:max-w-full mx-auto block text-xs text-[#a89a8e]" />
+                    
+                    <div class="flex flex-wrap gap-2 mt-4 justify-center md:justify-start">
+    <button onclick="removeBg('white')" class="bg-white border-2 border-[#e9e0d9] text-[#7d6f64] px-3 py-1.5 rounded-xl text-[10px] font-bold hover:border-[#d4a373] transition-colors shadow-sm">🤍 白背景を透過</button>
+    <button onclick="removeBg('black')" class="bg-[#5d534a] border-2 border-[#5d534a] text-white px-3 py-1.5 rounded-xl text-[10px] font-bold hover:bg-[#3d352e] transition-colors shadow-sm">🖤 黒背景を透過</button>
+    <button onclick="removeCurrentImage()" class="bg-[#e5989b] text-white px-3 py-1.5 rounded-xl text-[10px] font-bold hover:bg-[#d97c83] transition-colors shadow-sm">🗑️ この画像を削除</button>
+    <button onclick="downloadCurrentImage()" class="bg-[#a3b18a] text-white px-3 py-1.5 rounded-xl text-[10px] font-bold hover:bg-[#84a98c] transition-colors shadow-sm w-full mt-1">💾 表示中の画像をダウンロード</button>
+</div>
+                </div>
+                
+                <div class="space-y-4 md:space-y-6">
+                    <div class="bg-[#fdfaf8] rounded-[24px] md:rounded-[32px] p-5 md:p-6 border-2 border-[#f0e9e4]">
+                        <h3 class="font-bold mb-3 text-[#7d6f64] text-sm md:text-base">🏷️ カスタムタグ</h3>
+                        <div class="flex flex-wrap gap-2 mb-3 min-h-[24px]" id="detailTagsList"></div>
+                        <input type="text" id="tagInput" onkeydown="handleTagInput(event)" class="w-full bg-white border-2 border-[#f0e9e4] rounded-xl p-2 text-xs outline-none focus:border-[#d4a373] shadow-sm transition-colors" placeholder="タグを入力してEnterで追加（例：チャイナドレス、シスター服など）">
+                    </div>
+
+                    <div class="bg-[#fdfaf8] rounded-[24px] md:rounded-[32px] p-5 md:p-6 border-2 border-[#f0e9e4]">
+                        <div class="bg-[#fff0f3] rounded-2xl p-4 mb-4 flex items-center justify-between border border-[#ffccd5]">
+                            <h3 class="font-bold text-[#ff8fa3] text-sm md:text-base">🎀 うちよそ設定</h3>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" id="uchiyosoCheck" onchange="toggleUchiyoso()" class="sr-only peer">
+                                <div class="w-11 h-6 bg-[#dcd0c9] rounded-full peer peer-checked:bg-[#ff8fa3] after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-full"></div>
+                            </label>
+                        </div>
+                        <input type="text" id="uchiyosoPartner" onchange="saveUchiyosoPartner()" class="w-full bg-white border-2 border-[#f0e9e4] rounded-2xl p-3 text-sm mb-6 outline-none focus:border-[#ffccd5]" placeholder="大切なひとの名前や関係性">
+                        
+                        <h3 class="font-bold mb-2 text-[#7d6f64] text-sm md:text-base">🌱 出身シナリオ</h3>
+                        <input type="text" id="originScenario" onchange="saveOriginScenario()" class="w-full bg-white border-2 border-[#f0e9e4] rounded-2xl p-3 text-sm mb-4 outline-none focus:border-[#d4a373]" placeholder="初めてのシナリオ名">
+                        
+                        <h3 class="font-bold mb-2 text-[#7d6f64] text-sm md:text-base">📖 その他通過シナリオ</h3>
+                        <textarea id="otherScenarios" onchange="saveOtherScenarios()" class="w-full h-24 md:h-32 bg-white border-2 border-[#f0e9e4] rounded-2xl p-4 outline-none text-sm focus:border-[#d4a373]" placeholder="その後の軌跡や思い出を書き残そう"></textarea>
+                    </div>
+                    
+                    <div class="bg-[#fdfaf8] rounded-[24px] md:rounded-[32px] p-5 md:p-6 border-2 border-[#f0e9e4]">
+                        <h3 class="font-bold mb-2 text-[#7d6f64] text-sm md:text-base">📒 自由メモ</h3>
+                        <textarea id="detailMemo" onchange="saveMemo()" class="w-full h-48 md:h-64 bg-white border-2 border-[#f0e9e4] rounded-2xl p-4 outline-none text-sm text-[#5d534a] font-sans focus:border-[#d4a373] resize-y" placeholder="自由にメモを書き込めるよ！"></textarea>
+                    </div>
+                    
+                    <div class="bg-[#fdfaf8] rounded-[24px] md:rounded-[32px] p-5 md:p-6 border-2 border-[#f0e9e4]">
+                        <h3 class="font-bold mb-4 text-[#7d6f64] text-sm md:text-base">📊 能力値</h3>
+                        <div id="statusEditor" class="grid grid-cols-2 md:grid-cols-4 gap-3"></div>
+                    </div>
+
+                    <div class="bg-[#fdfaf8] rounded-[24px] md:rounded-[32px] p-5 md:p-6 border-2 border-[#f0e9e4]">
+                        <h3 class="font-bold mb-4 text-[#7d6f64] text-sm md:text-base">🛠 技能一覧</h3>
+                        <div id="detailSkills" class="grid grid-cols-1 sm:grid-cols-2 gap-2 md:gap-3 text-xs"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<script>
+// ==========================================
+// 🚀 新機能：IndexedDB（大容量データベース）の実装
+// ==========================================
+let explorers = [];
+const IDB_NAME = "TRPG_Tool_DB";
+const IDB_STORE = "explorers_store";
+
+const idb = {
+    get() {
+        return new Promise((resolve, reject) => {
+            const req = indexedDB.open(IDB_NAME, 1);
+            req.onupgradeneeded = e => e.target.result.createObjectStore(IDB_STORE);
+            req.onsuccess = e => {
+                const db = e.target.result;
+                if (!db.objectStoreNames.contains(IDB_STORE)) {
+                    resolve([]); return;
+                }
+                const tx = db.transaction(IDB_STORE, "readonly");
+                const store = tx.objectStore(IDB_STORE);
+                const getReq = store.get("explorers");
+                getReq.onsuccess = () => resolve(getReq.result || []);
+                getReq.onerror = () => reject(getReq.error);
+            };
+            req.onerror = e => reject(e);
+        });
+    },
+    set(data) {
+        return new Promise((resolve, reject) => {
+            const req = indexedDB.open(IDB_NAME, 1);
+            req.onsuccess = e => {
+                const db = e.target.result;
+                const tx = db.transaction(IDB_STORE, "readwrite");
+                const store = tx.objectStore(IDB_STORE);
+                const putReq = store.put(data, "explorers");
+                putReq.onsuccess = () => resolve();
+                putReq.onerror = () => reject(putReq.error);
+            };
+            req.onerror = e => reject(e);
+        });
+    }
+};
+
+// 起動時の初期化処理（データ移行と読み込み）
+window.addEventListener('DOMContentLoaded', async () => {
+    try {
+        // IndexedDBからデータを読み込む
+        explorers = await idb.get();
+        
+        // 【引っ越し機能】もしIndexedDBが空で、localStorageに昔のデータが残っていたら移行する
+        const oldData = localStorage.getItem("explorers");
+        if (explorers.length === 0 && oldData) {
+            explorers = JSON.parse(oldData);
+            await idb.set(explorers);
+            console.log("旧システムからのデータ引き継ぎが完了しました！");
+        }
+    } catch (e) {
+        console.error("データベースの読み込みに失敗しました", e);
+        alert("データの読み込みに失敗しました。お使いのブラウザがIndexedDBに対応していない可能性があります。");
+    }
+
+    // ビュー設定（これは軽いのでlocalStorageのまま）
+    window.addEventListener('resize', applyViewSettings);
+    applyViewSettings();
+    render();
+
+    // 職業セレクトボックスのセットアップ
+    const select = document.getElementById('gen-jobSelect');
+    for (const j in jobs) {
+        const opt = document.createElement('option');
+        opt.value = j; opt.text = j; select.add(opt);
+    }
+});
+
+// 新しい保存機能（localStorageの代わりにIndexedDBを使う）
+async function save() { 
+    try {
+        await idb.set(explorers); 
+    } catch (e) {
+        console.error(e);
+        alert("保存に失敗しました。PC/スマホの空き容量を確認してください。");
+    }
+}
+// ==========================================
+
+// --- タブ切り替えロジック ---
+function switchTab(tabId) {
+    document.getElementById('tab-sheet').classList.add('hidden');
+    document.getElementById('tab-gen').classList.add('hidden');
+    document.getElementById('tab-' + tabId).classList.remove('hidden');
+    
+    const btnSheet = document.getElementById('btn-sheet');
+    const btnGen = document.getElementById('btn-gen');
+    btnSheet.className = "w-12 h-12 flex items-center justify-center rounded-full transition-all duration-200 text-[#a09385] hover:bg-[#f7f3f0] font-bold hover:scale-110";
+    btnGen.className   = "w-12 h-12 flex items-center justify-center rounded-full transition-all duration-200 text-[#a09385] hover:bg-[#f7f3f0] font-bold hover:scale-110";
+    
+    const activeBtn = document.getElementById('btn-' + tabId);
+    activeBtn.className = "w-12 h-12 flex items-center justify-center rounded-full transition-all duration-200 bg-[#f0e9e4] text-[#d4a373] font-bold hover:scale-110";
+}
+
+let draggingId = null;
+let currentGenderFilter = "";
+let currentTagFilter = "";
+let currentSort = "";
+let currentSortDir = "desc";
+let selectedExplorer = null;
+
+let viewSettings = JSON.parse(localStorage.getItem("viewSettings") || JSON.stringify({
+    widths: { "col-alive": 550, "col-lost": 250, "col-if": 250, "col-retired": 250, "col-unplayed": 250 },
+    heights: { skillFilterContainer: 150 },
+    visible: { alive: true, lost: true, if: false, retired: false, unplayed: true },
+    headerMinimized: false
+}));
+
+document.querySelectorAll('.column, #header-container').forEach(col => {
+    const resizerH = col.querySelector('.resizer');
+    const resizerV = col.querySelector('.resizer-v');
+
+    if (resizerH) {
+        resizerH.addEventListener('mousedown', e => {
+            e.preventDefault();
+            const startX = e.pageX; const startWidth = col.offsetWidth;
+            const onMouseMove = ev => {
+                const width = startWidth + (ev.pageX - startX);
+                if (width > 220) { col.style.width = width + 'px'; }
+            };
+            const onMouseUp = () => {
+                if (col.id) viewSettings.widths[col.id] = col.offsetWidth;
+                localStorage.setItem("viewSettings", JSON.stringify(viewSettings));
+                window.removeEventListener('mousemove', onMouseMove); window.removeEventListener('mouseup', onMouseUp);
+            };
+            window.addEventListener('mousemove', onMouseMove); window.addEventListener('mouseup', onMouseUp);
+        });
+
+        resizerH.addEventListener('dblclick', () => {
+            const minWidth = 220;
+            if (col.offsetWidth > minWidth + 5) {
+                col.dataset.prevWidth = col.offsetWidth;
+                col.style.width = minWidth + 'px';
+            } else {
+                const defaultWidth = col.id === 'skillFilterContainer' ? 1000 : 550;
+                col.style.width = (col.dataset.prevWidth || defaultWidth) + 'px';
+            }
+            if (col.id) viewSettings.widths[col.id] = col.offsetWidth;
+            localStorage.setItem("viewSettings", JSON.stringify(viewSettings));
+        });
+    }
+
+    if (resizerV) {
+        if (col.id !== 'header-container') {
+            resizerV.addEventListener('mousedown', e => {
+                e.preventDefault();
+                const startY = e.pageY; const startHeight = col.offsetHeight;
+                const onMouseMove = ev => {
+                    const height = startHeight + (ev.pageY - startY);
+                    if (height > 65) col.style.height = height + 'px';
+                };
+                const onMouseUp = () => {
+                    if (col.id) viewSettings.heights[col.id] = col.offsetHeight;
+                    localStorage.setItem("viewSettings", JSON.stringify(viewSettings));
+                    window.removeEventListener('mousemove', onMouseMove); window.removeEventListener('mouseup', onMouseUp);
+                };
+                window.addEventListener('mousemove', onMouseMove); window.addEventListener('mouseup', onMouseUp);
+            });
+        }
+
+        resizerV.addEventListener('dblclick', () => {
+            if (col.id === 'header-container') {
+                const controls = document.getElementById('header-controls');
+                const actions = document.getElementById('header-actions');
+                if (controls) {
+                    controls.classList.toggle('hidden');
+                    if (actions) actions.classList.toggle('border-b', !controls.classList.contains('hidden'));
+                    if (actions) actions.classList.toggle('pb-3', !controls.classList.contains('hidden'));
+                    
+                    viewSettings.headerMinimized = controls.classList.contains('hidden');
+                    localStorage.setItem("viewSettings", JSON.stringify(viewSettings));
+                }
+            } else {
+                const minHeight = 65;
+                if (col.offsetHeight > minHeight + 5) {
+                    col.dataset.prevHeight = col.offsetHeight;
+                    col.style.height = minHeight + 'px';
+                } else {
+                    col.style.height = (col.dataset.prevHeight || 150) + 'px';
+                }
+                if (col.id) viewSettings.heights[col.id] = col.offsetHeight;
+                localStorage.setItem("viewSettings", JSON.stringify(viewSettings));
+            }
+        });
+    }
+});
+
+function applyViewSettings() {
+    const isDesktop = window.innerWidth >= 768;
+    if (isDesktop) {
+        for (let id in viewSettings.widths) {
+            const el = document.getElementById(id);
+            if (el) el.style.width = viewSettings.widths[id] + 'px'; 
+        }
+        for (let id in viewSettings.heights) {
+            const el = document.getElementById(id);
+            if (el) el.style.height = viewSettings.heights[id] === 'auto' ? 'auto' : viewSettings.heights[id] + 'px';
+        }
+
+        if (viewSettings.headerMinimized) {
+            const controls = document.getElementById('header-controls');
+            const actions = document.getElementById('header-actions');
+            if (controls) {
+                controls.classList.add('hidden');
+                if (actions) actions.classList.remove('border-b');
+                if (actions) actions.classList.remove('pb-3');
+            }
+        }
+    }
+    for (let status in viewSettings.visible) {
+        const isVisible = viewSettings.visible[status];
+        const col = document.querySelector(`.column[data-status="${status}"]`);
+        const cb = document.querySelector(`input[value="${status}"]`);
+        if (col) col.classList.toggle("hidden", !isVisible);
+        if (cb) cb.checked = isVisible;
+    }
+}
+
+function updateViewSettings(status, isChecked) {
+    viewSettings.visible[status] = isChecked;
+    localStorage.setItem("viewSettings", JSON.stringify(viewSettings));
+    const col = document.querySelector(`.column[data-status="${status}"]`);
+    if (col) col.classList.toggle("hidden", !isChecked);
+}
+
+function setGenderFilter(g) { 
+    currentGenderFilter = g; 
+    document.getElementById('btn-gender-all').classList.toggle('font-bold', g === '');
+    document.getElementById('btn-gender-all').classList.toggle('text-[#d4a373]', g === '');
+    document.getElementById('btn-gender-male').classList.toggle('font-bold', g === '男性');
+    document.getElementById('btn-gender-male').classList.toggle('text-[#d4a373]', g === '男性');
+    document.getElementById('btn-gender-female').classList.toggle('font-bold', g === '女性');
+    document.getElementById('btn-gender-female').classList.toggle('text-[#d4a373]', g === '女性');
+    render(); 
+}
+
+function setTagFilter(tag) {
+    currentTagFilter = tag;
+    document.getElementById('btn-tag-all').classList.toggle('font-bold', tag === '');
+    document.getElementById('btn-tag-all').classList.toggle('text-[#d4a373]', tag === '');
+    render();
+}
+
+function setSort(k) {
+    if (currentSort === k) currentSortDir = currentSortDir === "desc" ? "asc" : "desc";
+    else { currentSort = k; currentSortDir = "desc"; }
+    render();
+}
+
+function clearSort() { currentSort = ""; render(); }
+
+function filterSkills() {
+    const inputEl = document.getElementById("skillSearchInput");
+    if (!inputEl) return;
+    const term = inputEl.value.toLowerCase();
+    const labels = document.querySelectorAll("#skillFilterList label");
+    
+    labels.forEach(label => {
+        const skillName = label.textContent.toLowerCase();
+        if (skillName.includes(term)) {
+            label.style.display = ""; 
+        } else {
+            label.style.display = "none";
+        }
+    });
+}
+
+function render() {
+    const checked = [...document.querySelectorAll(".skill-filter-checkbox:checked")].map(el => el.value);
+    const searchWord = document.getElementById("searchInput")?.value?.toLowerCase() || "";
+
+    let filtered = explorers.filter(e => {
+        const genderMatch = !currentGenderFilter || e.gender === currentGenderFilter;
+        const searchTarget = `${e.name || ""} ${e.memo || ""} ${e.originScenario || ""} ${e.otherScenarios || ""}`.toLowerCase();
+        const searchMatch = !searchWord || searchTarget.includes(searchWord);
+        return genderMatch && searchMatch;
+    });
+
+    if (currentTagFilter) {
+        filtered = filtered.filter(e => e.tags && e.tags.includes(currentTagFilter));
+    }
+    if (checked.length) {
+        filtered = filtered.filter(e => checked.every(s => 
+            e.skills?.some(sk => !sk.exclude && sk.name.includes(s))
+        ));
+    }
+    
+    if (currentSort) {
+        filtered.sort((a, b) => {
+            const av = a[currentSort] || 0, bv = b[currentSort] || 0;
+            return currentSortDir === "asc" ? av - bv : bv - av;
+        });
+    }
+
+    updateSortUI();
+    renderSkillCheckboxes(checked);
+    
+    const allTags = [...new Set(explorers.flatMap(e => e.tags || []))].sort();
+    const tagContainer = document.getElementById("tagFilterContainer");
+    tagContainer.innerHTML = allTags.map(t => `
+        <button class="whitespace-nowrap flex-shrink-0 hover:text-[#d4a373] px-1 ${currentTagFilter === t ? 'text-[#d4a373] font-bold' : ''}" onclick="setTagFilter('${t}')">${t}</button>
+    `).join("");
+
+    document.querySelectorAll(".explorer-list").forEach(l => l.innerHTML = "");
+
+    filtered.forEach(e => {
+        const list = document.querySelector(`[data-status="${e.status}"] .explorer-list`);
+        if (!list) return;
+        
+        const tagHtml = (e.tags || []).map(t => `<span class="bg-[#f7f3f0] text-[#7d6f64] px-1.5 py-0.5 rounded-md text-[9px] font-medium border border-[#e9e0d9] truncate max-w-[70px] inline-block shadow-sm">${t}</span>`).join("");
+        
+        const card = document.createElement("div");
+        card.className = `card group relative ${e.uchiyoso ? 'card-uchiyoso' : ''} shadow-sm text-xs flex flex-col justify-center min-h-[70px]`;
+        card.draggable = true;
+        card.innerHTML = `
+            ${e.originScenario ? `<div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-[#7d6f64] text-white text-[10px] px-3 py-1.5 rounded-lg whitespace-nowrap max-w-[200px] overflow-hidden text-ellipsis opacity-0 invisible group-hover:opacity-100 group-hover:-translate-y-1 group-hover:visible transition-all duration-200 pointer-events-none z-50 shadow-md after:content-[''] after:absolute after:top-full after:left-1/2 after:-translate-x-1/2 after:border-4 after:border-transparent after:border-t-[#7d6f64]">🌱 ${e.originScenario}</div>` : ""}
+            <div class="flex gap-3 items-center">
+                <div class="w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl overflow-hidden bg-[#f7f3f0] shrink-0 border-2 border-white shadow-sm">
+                    ${e.image ? `<img src="${e.image}" referrerpolicy="no-referrer" class="w-full h-full object-contain bg-[#f7f3f0]" />` : ""}
+                </div>
+                <div class="flex-1 min-w-0">
+                    <div class="font-bold truncate text-[#5d534a] text-xs md:text-[13px]">${e.name} ${e.uchiyoso ? '💖' : ''}</div>
+                    <div class="text-[#a89a8e] text-[9px] md:text-[10px] truncate font-medium mb-0.5">${e.occupation || "職業未設定"}</div>
+                    <div class="flex gap-1 flex-wrap">${tagHtml}</div>
+                </div>
+            </div>
+        `;
+        card.onclick = () => openDetailModal(e.id);
+        card.ondragstart = () => { draggingId = e.id; card.classList.add("dragging"); };
+        card.ondragend = () => { draggingId = null; card.classList.remove("dragging"); };
+        list.appendChild(card);
+    });
+}
+
+function renderSkillCheckboxes(checked) {
+    const list = document.getElementById("skillFilterList");
+    const skills = [...new Set(explorers.flatMap(e => (e.skills || []).filter(s => !s.exclude).map(s => s.name)))].sort();
+    list.innerHTML = skills.map(s => `
+        <label class="flex items-center gap-1.5 md:gap-2 cursor-pointer truncate text-[#a89a8e] hover:text-[#d4a373] transition-colors" title="${s}">
+            <input type="checkbox" value="${s}" class="skill-filter-checkbox" ${checked.includes(s) ? 'checked' : ''} onchange="render()">
+            <span class="truncate font-medium text-[10px] md:text-xs">${s}</span>
+        </label>
+    `).join("");
+    filterSkills();
+}
+
+function updateSortUI() {
+    document.querySelectorAll("[data-sort]").forEach(btn => {
+        const active = btn.dataset.sort === currentSort;
+        btn.classList.toggle("text-[#d4a373]", active);
+        btn.classList.toggle("font-bold", active);
+        const icon = btn.querySelector(".sort-icon");
+        if (icon) icon.textContent = active ? (currentSortDir === "asc" ? " ⤴" : " ⤵") : "";
+    });
+}
+
+document.querySelectorAll(".column").forEach(col => {
+    col.ondragover = e => e.preventDefault();
+    col.ondrop = () => {
+        if (!draggingId) return;
+        const e = explorers.find(x => x.id === draggingId);
+        if (e) { e.status = col.dataset.status; save(); render(); }
+    };
+});
+
+const trashBtn = document.getElementById("trash");
+trashBtn.ondragover = e => e.preventDefault();
+trashBtn.ondrop = () => {
+    if (!draggingId) return;
+    const e = explorers.find(x => x.id === draggingId);
+    if (e && confirm(`${e.name} くん/ちゃんを削除しちゃう？`)) { explorers = explorers.filter(x => x.id !== e.id); save(); render(); }
+};
+
+function openImportModal() { document.getElementById("importModal").classList.remove("hidden"); }
+function closeImportModal() { document.getElementById("importModal").classList.add("hidden"); }
+
+function importCharaenoFile() {
+    const jsonInput = document.getElementById("jsonInput");
+    jsonInput.value = "";
+    jsonInput.placeholder = "いあきゃらの「ココフォリア出力」または、キャラエノの「ココフォリアコマ出力（キャラクターメモシート全体）」のデータをここに貼り付けてね。";
+    document.getElementById("importModal").classList.remove("hidden");
+}
+
+function importJson() {
+    try {
+        const raw = document.getElementById("jsonInput").value;
+        const parsed = JSON.parse(raw);
+        const data = parsed.data || parsed;
+
+        if (data.memo && data.memo.includes("【探索者のデータ】")) {
+            const originalMemoText = data.memo || "";
+            const linesForExtraction = originalMemoText.split('\n');
+            const san = parseInt(data.status?.find(s => s.label === "SAN")?.value) || 0;
+            const originMatch = originalMemoText.match(/出身[:：]\s*(.+)/);
+            const originScenario = originMatch ? originMatch[1].trim() : "";
+            const occupation = linesForExtraction[0]?.split(/[()（）0-9]+/).pop()?.replace(/[男女 \t]+$/, "").trim() || "";
+            const gender = linesForExtraction[0].includes("男") ? "男性" : linesForExtraction[0].includes("女") ? "女性" : "不明";
+            const age = parseInt(originalMemoText.match(/(\d+)歳/)?.[1]) || 0;
+            const str = parseInt(originalMemoText.match(/STR[:：]\s*(\d+)/)?.[1]) || 0;
+            const dex = parseInt(originalMemoText.match(/DEX[:：]\s*(\d+)/)?.[1]) || 0;
+            const int = parseInt(originalMemoText.match(/INT[:：]\s*(\d+)/)?.[1]) || 0;
+            const con = parseInt(originalMemoText.match(/CON[:：]\s*(\d+)/)?.[1]) || 0;
+            const app = parseInt(originalMemoText.match(/APP[:：]\s*(\d+)/)?.[1]) || 0;
+            const pow = parseInt(originalMemoText.match(/POW[:：]\s*(\d+)/)?.[1]) || 0;
+            const siz = parseInt(originalMemoText.match(/SIZ[:：]\s*(\d+)/)?.[1]) || 0;
+            const edu = parseInt(originalMemoText.match(/EDU[:：]\s*(\d+)/)?.[1]) || 0;
+            const skills = originalMemoText.split("\n").map(l => {
+                const m = l.match(/(.*)：([0-9]+)%/);
+                return m ? { name: m[1].trim(), value: parseInt(m[2]) } : null;
+            }).filter(Boolean);
+
+            let memoLines = originalMemoText.split('\n');
+            memoLines = memoLines.filter(line => {
+                if (line.match(/^[^：:]+[：:]\s*$/)) return false;
+                if (line.includes('-%')) return false;
+                return true;
+            });
+            let memoText = memoLines.join('\n');
+
+            const targetSections = [
+                "技能", "火器", "近接戦", "武器", "冒険の装備とその他の所持品", 
+                "探索者のデータ", "収入と財産", "読んだクトゥルフ神話の魔道書", 
+                "アーティファクト／学んだ呪文", "遭遇した超自然の存在"
+            ];
+            const removeCompletely = ["技能", "火器", "近接戦"];
+
+            targetSections.forEach(section => {
+                const startTag = `【${section}】`;
+                const startIndex = memoText.indexOf(startTag);
+                if (startIndex === -1) return;
+
+                let endIndex = memoText.indexOf("\n【", startIndex + startTag.length);
+                if (endIndex === -1) endIndex = memoText.indexOf("【", startIndex + startTag.length);
+                if (endIndex === -1) endIndex = memoText.length;
+
+                const wholeSection = memoText.substring(startIndex, endIndex);
+
+                if (removeCompletely.includes(section)) {
+                    memoText = memoText.replace(wholeSection, "");
+                } else {
+                    const sectionContent = wholeSection.replace(startTag, "");
+                    const lines = sectionContent.split('\n');
+                    let hasContent = false;
+                    for (let line of lines) {
+                        line = line.trim();
+                        if (!line || /^-+$/.test(line)) continue;
+                        hasContent = true; 
+                        break;
+                    }
+                    if (!hasContent) {
+                        memoText = memoText.replace(wholeSection, "");
+                    }
+                }
+            });
+
+            memoText = memoText.replace(/(^|\n)(-{10,}\s*)+/g, "\n----------------------------------------\n");
+            memoText = memoText.replace(/\n{3,}/g, "\n\n").trim();
+            memoText = memoText.replace(/^-{10,}\n/, ""); 
+            memoText = memoText.trim();
+
+            const updated = {
+                id: crypto.randomUUID(),
+                name: data.name || "名称未設定", occupation: occupation, san: san,
+                gender: gender, age: age,
+                str: str, dex: dex, int: int, con: con, app: app, pow: pow, siz: siz, edu: edu,
+                skills: skills, image: data.image || "", images: data.image ? [data.image] : [], imageIndex: 0,
+                memo: memoText, status: "unplayed", originScenario: originScenario, otherScenarios: "",
+                tags: [], uchiyoso: false, uchiyosoPartner: ""
+            };
+
+            explorers.push(updated); save(); render(); closeImportModal();
+            document.getElementById("jsonInput").value = "";
+            alert(`${updated.name} を読み込んだよ！ 🌸\nメモ欄も綺麗に整理しておきました✨`);
+            return; 
+        }
+
+        if (!data || !data.params) throw new Error("無効なデータ");
+        const getParam = (lbl) => parseInt(data.params?.find(p => p.label === lbl)?.value || 0);
+        const getStatus = (lbl) => parseInt(data.status?.find(s => s.label === lbl)?.value || 0);
+
+        const skills = [];
+        if (data.commands) {
+            const lines = data.commands.split('\n');
+            lines.forEach(line => {
+                const match = line.match(/<=([0-9]+)\s*【(.+)】/);
+                if (match) {
+                    const name = match[2].trim();
+                    skills.push({ name: name, value: parseInt(match[1]) });
+                }
+            });
+        }
+
+        const updated = {
+            id: crypto.randomUUID(),
+            name: data.name || "名称未設定", occupation: "", san: getStatus("SAN"),
+            gender: "不明", age: 0, str: getParam("STR"), dex: getParam("DEX"), int: getParam("INT"),
+            con: getParam("CON"), app: getParam("APP"), pow: getParam("POW"), siz: getParam("SIZ"), edu: getParam("EDU"),
+            skills: skills, memo: data.externalUrl ? `いあきゃらURL: ${data.externalUrl}` : "",
+            image: data.image || "", images: data.image ? [data.image] : [], imageIndex: 0,
+            status: "unplayed", originScenario: "", otherScenarios: "",
+            tags: [], uchiyoso: false, uchiyosoPartner: ""
+        };
+        
+        explorers.push(updated); save(); render(); closeImportModal();
+        document.getElementById("jsonInput").value = "";
+        alert(`${updated.name} を読み込んだよ！ ✨`);
+
+    } catch (e) { 
+        console.error(e);
+        alert("ごめんね、うまく読み込めなかったみたい。\nコピーしたデータが合っているか確認してみてね！"); 
+    }
+}
+
+function openDetailModal(id) {
+    selectedExplorer = explorers.find(e => e.id === id);
+    if (!selectedExplorer) return;
+    
+    document.getElementById("detailName").textContent = selectedExplorer.name;
+    document.getElementById("detailOccupation").value = selectedExplorer.occupation || "";
+    document.getElementById("detailAge").value = selectedExplorer.age || 0;
+    
+    document.getElementById("detailStatus").value = selectedExplorer.status || "unplayed";
+    document.getElementById("detailSanBadge").textContent = `SAN ${selectedExplorer.san} / ${selectedExplorer.sanMax || (selectedExplorer.pow || 0) * 5}`;
+
+    document.getElementById("detailMemo").value = selectedExplorer.memo || "";
+    document.getElementById("originScenario").value = selectedExplorer.originScenario || "";
+    document.getElementById("otherScenarios").value = selectedExplorer.otherScenarios || selectedExplorer.scenarioMemo || "";
+    
+    if (!selectedExplorer.images) selectedExplorer.images = selectedExplorer.image ? [selectedExplorer.image] : [];
+    selectedExplorer.imageIndex = 0;
+    document.getElementById("detailImage").src = selectedExplorer.images[0] || "";
+    document.getElementById("uchiyosoCheck").checked = selectedExplorer.uchiyoso || false;
+    document.getElementById("uchiyosoPartner").value = selectedExplorer.uchiyosoPartner || "";
+
+    renderStatusEditor();
+    renderDetailSkills();
+    renderDetailTags();
+    document.getElementById("detailModal").classList.remove("hidden");
+}
+
+function closeDetailModal() { document.getElementById("detailModal").classList.add("hidden"); }
+function outsideClose(e) { if (e.target.id === "detailModal") closeDetailModal(); }
+
+function recalcDerivedStatus() {
+    if (!selectedExplorer) return;
+    selectedExplorer.sanMax = (selectedExplorer.pow || 0) * 5;
+    selectedExplorer.hp = Math.ceil(((selectedExplorer.con || 0) + (selectedExplorer.siz || 0)) / 2);
+}
+
+function changeStat(stat, amount) {
+    if (!selectedExplorer) return;
+    selectedExplorer[stat] = Math.max(0, (selectedExplorer[stat] || 0) + amount);
+    recalcDerivedStatus();
+    document.getElementById("detailSanBadge").textContent = `SAN ${selectedExplorer.san} / ${selectedExplorer.sanMax || (selectedExplorer.pow || 0) * 5}`;
+    renderStatusEditor(); save(); render();
+}
+
+function handleTagInput(e) {
+    if (e.key === 'Enter' && !e.isComposing) {
+        e.preventDefault();
+        const val = e.target.value.trim();
+        if (val && selectedExplorer) {
+            if (!selectedExplorer.tags) selectedExplorer.tags = [];
+            if (!selectedExplorer.tags.includes(val)) {
+                selectedExplorer.tags.push(val);
+                save(); render(); renderDetailTags();
+            }
+            e.target.value = "";
+        }
+    }
+}
+
+function removeTag(tag) {
+    if (selectedExplorer && selectedExplorer.tags) {
+        selectedExplorer.tags = selectedExplorer.tags.filter(t => t !== tag);
+        save(); render(); renderDetailTags();
+    }
+}
+
+function renderDetailTags() {
+    const container = document.getElementById("detailTagsList");
+    const tags = selectedExplorer.tags || [];
+    container.innerHTML = tags.map(t => `
+        <span class="bg-[#e9e0d9] text-[#5d534a] px-2 py-1 rounded-lg text-xs flex items-center gap-1.5 shadow-sm font-medium">
+            ${t} <button onclick="removeTag('${t}')" class="text-[#e5989b] hover:text-red-500 font-bold ml-1 rounded-full bg-white w-4 h-4 flex items-center justify-center text-[10px] leading-none pb-[1px]">×</button>
+        </span>
+    `).join("");
+}
+
+function uploadImage(ev) {
+    const file = ev.target.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+        const img = new Image();
+        img.onload = () => {
+            const cv = document.createElement('canvas');
+            const maxSize = 400; 
+            let w = img.width; let h = img.height;
+            if (w > h) { if (w > maxSize) { h *= maxSize / w; w = maxSize; } } 
+            else { if (h > maxSize) { w *= maxSize / h; h = maxSize; } }
+            cv.width = w; cv.height = h;
+            cv.getContext('2d').drawImage(img, 0, 0, w, h);
+            
+            const imgData = cv.toDataURL('image/png');
+
+            if (!selectedExplorer.images) selectedExplorer.images = [];
+            selectedExplorer.images.push(imgData);
+            selectedExplorer.image = selectedExplorer.images[0];
+            selectedExplorer.imageIndex = selectedExplorer.images.length - 1;
+
+            save(); render();
+            document.getElementById("detailImage").src = selectedExplorer.images[selectedExplorer.imageIndex];
+        };
+        img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+}
+
+function removeBg(targetColor) {
+    if (!selectedExplorer || !selectedExplorer.images || selectedExplorer.images.length === 0) {
+        alert("画像が登録されていません！");
+        return;
+    }
+
+    const imgObj = new Image();
+    imgObj.onload = function() {
+        const canvas = document.createElement("canvas");
+        canvas.width = imgObj.width;
+        canvas.height = imgObj.height;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(imgObj, 0, 0);
+
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const data = imageData.data;
+        const threshold = targetColor === 'white' ? 240 : 25; 
+
+        for (let i = 0; i < data.length; i += 4) {
+            const r = data[i];
+            const g = data[i + 1];
+            const b = data[i + 2];
+            
+            if (targetColor === 'white') {
+                if (r > threshold && g > threshold && b > threshold) {
+                    data[i + 3] = 0;
+                }
+            } else if (targetColor === 'black') {
+                if (r < threshold && g < threshold && b < threshold) {
+                    data[i + 3] = 0;
+                }
+            }
+        }
+
+        ctx.putImageData(imageData, 0, 0);
+        const newImgData = canvas.toDataURL("image/png");
+        
+        selectedExplorer.images[selectedExplorer.imageIndex] = newImgData;
+        if (selectedExplorer.imageIndex === 0) {
+            selectedExplorer.image = newImgData;
+        }
+        document.getElementById("detailImage").src = newImgData;
+        save();
+        render();
+        alert(`${targetColor === 'white' ? '白' : '黒'}背景を透過しました！✨`);
+    };
+    imgObj.src = selectedExplorer.images[selectedExplorer.imageIndex];
+}
+
+function downloadCurrentImage() {
+    if (!selectedExplorer || !selectedExplorer.images || selectedExplorer.images.length === 0) {
+        alert("ダウンロードする画像がありません！");
+        return;
+    }
+    const a = document.createElement("a");
+    a.href = selectedExplorer.images[selectedExplorer.imageIndex];
+    a.download = `${selectedExplorer.name}_立ち絵.png`;
+    a.click();
+}
+
+function saveOccupation() { if (selectedExplorer) { selectedExplorer.occupation = document.getElementById("detailOccupation").value; save(); render(); } }
+function saveAge() { if (selectedExplorer) { selectedExplorer.age = parseInt(document.getElementById("detailAge").value) || 0; save(); render(); } }
+function saveStatus() { if (selectedExplorer) { selectedExplorer.status = document.getElementById("detailStatus").value; save(); render(); } }
+function saveOriginScenario() { if (selectedExplorer) { selectedExplorer.originScenario = document.getElementById("originScenario").value; save(); render(); } }
+function saveOtherScenarios() { if (selectedExplorer) { selectedExplorer.otherScenarios = document.getElementById("otherScenarios").value; save(); } }
+function saveMemo() { if (selectedExplorer) { selectedExplorer.memo = document.getElementById("detailMemo").value; save(); } }
+function changeSan(value) {
+    if (!selectedExplorer) return;
+    selectedExplorer.san = Math.max(0, (selectedExplorer.san || 0) + value);
+    document.getElementById("detailSanBadge").textContent = `SAN ${selectedExplorer.san} / ${selectedExplorer.sanMax || (selectedExplorer.pow || 0) * 5}`;
+    save(); render();
+}
+
+function renderStatusEditor() {
+    if (!selectedExplorer) return;
+    const stats = ["str", "con", "pow", "dex", "app", "siz", "int", "edu"];
+    const container = document.getElementById("statusEditor");
+    container.innerHTML = stats.map(stat => {
+        const value = selectedExplorer[stat] || 0;
+        return `
+            <div class="bg-white border border-[#f0e9e4] rounded-2xl p-3 shadow-sm">
+                <div class="text-[#a89a8e] text-xs font-bold mb-2 uppercase">${stat}</div>
+                <div class="flex items-center justify-between gap-2">
+                    <button onclick="changeStat('${stat}', -1)" class="w-7 h-7 rounded-full bg-[#fae1dd] text-[#e5989b] font-bold">−</button>
+                    <div class="font-bold text-[#5d534a] text-lg min-w-[32px] text-center">${value}</div>
+                    <button onclick="changeStat('${stat}', 1)" class="w-7 h-7 rounded-full bg-[#e0f2f1] text-[#4db6ac] font-bold">＋</button>
+                </div>
+            </div>
+        `;
+    }).join("");
+}
+
+function toggleUchiyoso() { if (selectedExplorer) { selectedExplorer.uchiyoso = document.getElementById("uchiyosoCheck").checked; save(); render(); } }
+function saveUchiyosoPartner() { if (selectedExplorer) { selectedExplorer.uchiyosoPartner = document.getElementById("uchiyosoPartner").value; save(); render(); } }
+function deleteExplorer() { if (selectedExplorer && confirm("本当にバイバイしちゃう？")) { explorers = explorers.filter(e => e.id !== selectedExplorer.id); save(); render(); closeDetailModal(); } }
+
+async function copyToClipboardJSON() {
+    if (!selectedExplorer) return;
+    const e = selectedExplorer;
+
+    let memoText = e.memo || "";
+    let extractedItems = "";
+
+    const itemRegex = /【(武器|冒険の装備とその他の所持品|所持品|アイテム|アーティファクト|装備)】([\s\S]*?)(?=【|$)/g;
+    let match;
+    while ((match = itemRegex.exec(memoText)) !== null) {
+        if (match[2].trim()) {
+            extractedItems += match[2].trim() + "\n\n";
+        }
+    }
+
+    extractedItems = extractedItems.trim();
+
+    if (!extractedItems) {
+        const cutMatch = memoText.match(/【(メモ|特記事項|プロフィール|設定|ステータス|履歴|家族|特徴)】/);
+        if (cutMatch) {
+            extractedItems = memoText.substring(0, cutMatch.index).trim();
+        } else {
+            extractedItems = memoText.trim();
+        }
+    }
+
+    const formattedMemo = `PC：${e.name}（${e.age || ""}）APP:${e.app || ""} SIZ:${e.siz || ""}
+PL：
+
+持ち物：
+${extractedItems}`;
+
+    const hp = Math.ceil(((e.con||0) + (e.siz||0)) / 2);
+    const mp = e.pow || 0;
+    const sanMax = e.sanMax || mp * 5;
+
+    let ss = (e.str || 0) + (e.siz || 0);
+    let db = "0";
+    if (ss <= 12) db = "-1d6";
+    else if (ss <= 16) db = "-1d4";
+    else if (ss <= 24) db = "0";
+    else if (ss <= 32) db = "+1d4";
+    else if (ss <= 40) db = "+1d6";
+    else if (ss > 40) {
+        let step = Math.ceil((ss - 40) / 16);
+        db = `+${1 + step}d6`;
+    }
+
+    const output = { 
+        kind: "character", 
+        data: { 
+            name: e.name, 
+            initiative: e.dex || 0, 
+            status: [
+                {label: "HP", value: hp, max: hp},
+                {label: "MP", value: mp, max: mp},
+                {label: "SAN", value: e.san || 0, max: sanMax}
+            ], 
+            params: [
+                {label: "STR", value: String(e.str || 0)},
+                {label: "CON", value: String(e.con || 0)},
+                {label: "POW", value: String(e.pow || 0)},
+                {label: "DEX", value: String(e.dex || 0)},
+                {label: "APP", value: String(e.app || 0)},
+                {label: "SIZ", value: String(e.siz || 0)},
+                {label: "INT", value: String(e.int || 0)},
+                {label: "EDU", value: String(e.edu || 0)},
+                {label: "DB", value: db} 
+            ], 
+            commands: e.skills?.map(s => `CCB<=${s.value} ${s.name}`).join("\n"), 
+            memo: formattedMemo 
+        } 
+    };
+    
+    await navigator.clipboard.writeText(JSON.stringify(output)); 
+    alert("ココフォリアに貼り付けられる形式でコピーしたよ！");
+}
+
+async function copyMarkdownStatus() {
+    if (!selectedExplorer) return;
+    const e = selectedExplorer;
+    const md = `
+# ${e.name}
+
+|項目|値|
+|---|---|
+|職業|${e.occupation || ""}|
+|年齢|${e.age || ""}|
+|性別|${e.gender || ""}|
+|SAN|${e.san || 0}|
+
+## 能力値
+
+|STR|CON|POW|DEX|APP|SIZ|INT|EDU|
+|---|---|---|---|---|---|---|---|
+|${e.str || 0}|${e.con || 0}|${e.pow || 0}|${e.dex || 0}|${e.app || 0}|${e.siz || 0}|${e.int || 0}|${e.edu || 0}|
+
+## 技能
+
+|技能|値|
+|---|---|
+${(e.skills || []).map(s => `|${s.name}|${s.value}%|`).join("\n")}
+
+## メモ
+
+${e.memo || ""}
+`.trim();
+
+    await navigator.clipboard.writeText(md);
+    alert("Markdown形式でコピーしたよ！ 📋✨");
+}
+
+function exportData() {
+    if (explorers.length === 0) { alert("バックアップする探索者がまだいないみたいです！"); return; }
+    const now = new Date(); const y = now.getFullYear(); const m = String(now.getMonth() + 1).padStart(2, '0'); const d = String(now.getDate()).padStart(2, '0');
+    const filename = `explorers_backup_${y}${m}${d}.json`;
+    const blob = new Blob([JSON.stringify(explorers, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a"); a.href = url; a.download = filename; a.click(); URL.revokeObjectURL(url);
+    alert(`現在登録されているすべての探索者（計 ${explorers.length} 人）のデータを\n「${filename}」として保存したよ！`);
+}
+
+function importBackup() {
+    const input = document.createElement("input"); input.type = "file";
+    input.onchange = e => { const reader = new FileReader(); reader.onload = f => { explorers = JSON.parse(f.target.result); save(); render(); }; reader.readAsText(e.target.files[0]); };
+    input.click();
+}
+
+function importTxtFile() {
+    const input = document.createElement("input");
+    input.type = "file"; input.accept = ".txt";
+    input.onchange = e => {
+        const file = e.target.files[0]; if (!file) return;
+        const reader = new FileReader();
+        reader.onload = ev => {
+            try {
+                const text = ev.target.result;
+                const name = text.match(/名前:\s*(.+)/) ? text.match(/名前:\s*(.+)/)[1].trim() : "名称未設定";
+                const age = text.match(/年齢:\s*(\d+)/) ? parseInt(text.match(/年齢:\s*(\d+)/)[1]) : 0;
+                const gender = text.match(/性別:\s*([^\s\/]+)/) ? text.match(/性別:\s*([^\s\/]+)/)[1].trim() : "不明";
+                const getStat = (label) => { const m = text.match(new RegExp(label + "\\s+(\\d+)")); return m ? parseInt(m[1]) : 0; };
+                const san = text.match(/現在SAN値\s+(\d+)/) ? parseInt(text.match(/現在SAN値\s+(\d+)/)[1]) : 0;
+
+                const skills = [];
+                text.split("\n").forEach(line => {
+                    const skillMatch = line.match(/^(.+?)\s+(\d+)\s+(\d+)\s+\d+\s+\d+\s+\d+\s+\d+/);
+                    if (skillMatch) {
+                        const skillName = skillMatch[1].trim(); const totalValue = parseInt(skillMatch[2]); const initialValue = parseInt(skillMatch[3]);
+                        const excluded = ["STR","CON","POW","DEX","APP","SIZ","INT","EDU","HP","MP","SAN","IDE","幸運","知識"];
+                        if (!excluded.includes(skillName) && totalValue !== initialValue) { skills.push({ name: skillName, value: totalValue, exclude: false }); }
+                    }
+                });
+
+                let images = [];
+                for (const match of text.matchAll(/:\s*(https?:\/\/[^\s]+)/g)) {
+                    let url = match[1].trim(); if (url.includes("image.iaproject.app")) url += "?format=png"; images.push(url);
+                }
+                const memo = text.match(/【メモ】([\s\S]*)/) ? text.match(/【メモ】([\s\S]*)/)[1].trim() : "";
+
+                const explorer = {
+                    id: crypto.randomUUID(), name, age, gender, occupation: "", status: "unplayed", san,
+                    str: getStat("STR"), con: getStat("CON"), pow: getStat("POW"), dex: getStat("DEX"),
+                    app: getStat("APP"), siz: getStat("SIZ"), int: getStat("INT"), edu: getStat("EDU"),
+                    skills, image: images[0] || "", images: images, imageIndex: 0, memo,
+                    tags: [], originScenario: "", otherScenarios: "", uchiyoso: false, uchiyosoPartner: ""
+                };
+
+                explorers.push(explorer); save(); render(); alert(`${name} を読み込んだよ！ 📖✨`);
+            } catch(err) { console.error(err); alert("TXTの読み込みに失敗しちゃった…！"); }
+        };
+        reader.readAsText(file, "UTF-8");
+    };
+    input.click();
+}
+
+function nextImage() {
+    if (!selectedExplorer.images?.length) return;
+    selectedExplorer.imageIndex = ((selectedExplorer.imageIndex || 0) + 1) % selectedExplorer.images.length;
+    document.getElementById("detailImage").src = selectedExplorer.images[selectedExplorer.imageIndex];
+}
+
+function prevImage() {
+    if (!selectedExplorer.images?.length) return;
+    selectedExplorer.imageIndex = ((selectedExplorer.imageIndex || 0) - 1 + selectedExplorer.images.length) % selectedExplorer.images.length;
+    document.getElementById("detailImage").src = selectedExplorer.images[selectedExplorer.imageIndex];
+}
+
+// --- 追加された技能操作関数群 ---
+function editSkill(index) {
+    if (!selectedExplorer || !selectedExplorer.skills) return;
+    const skill = selectedExplorer.skills[index];
+    const newName = prompt("新しい技能名を入力してください", skill.name);
+    if (newName === null) return; 
+    const newValueStr = prompt(`「${newName}」の技能値を入力してください（半角数字）`, skill.value);
+    if (newValueStr === null) return;
+    const newValue = parseInt(newValueStr);
+    
+    if (newName.trim() !== "" && !isNaN(newValue)) {
+        skill.name = newName.trim(); skill.value = newValue; save(); render(); renderDetailSkills(); 
+    } else { alert("正しい値が入力されませんでした！"); }
+}
+
+function deleteSkill(index) {
+    if (!selectedExplorer || !selectedExplorer.skills) return;
+    if (confirm(`「${selectedExplorer.skills[index].name}」を本当に削除してもいいですか？`)) {
+        selectedExplorer.skills.splice(index, 1); save(); render(); renderDetailSkills();
+    }
+}
+
+function addSkill() {
+    if (!selectedExplorer) return;
+    const newName = prompt("追加する技能名を入力してください");
+    if (!newName || newName.trim() === "") return;
+    const newValueStr = prompt(`「${newName}」の技能値を入力してください（半角数字）`, "50");
+    if (!newValueStr) return;
+    
+    const newValue = parseInt(newValueStr);
+    if (!isNaN(newValue)) {
+        if (!selectedExplorer.skills) selectedExplorer.skills = [];
+        selectedExplorer.skills.push({ name: newName.trim(), value: newValue, exclude: false });
+        save(); render(); renderDetailSkills();
+    } else { alert("正しい値が入力されませんでした！"); }
+}
+
+function toggleSkillExclude(index, isExcluded) {
+    if (!selectedExplorer || !selectedExplorer.skills) return;
+    selectedExplorer.skills[index].exclude = isExcluded; save(); render(); renderDetailSkills();
+}
+
+function renderDetailSkills() {
+    if (!selectedExplorer) return;
+    const sEl = document.getElementById("detailSkills");
+    const skillsHtml = selectedExplorer.skills?.map((s, index) => `
+        <div class="bg-white border ${s.exclude ? 'border-[#fae1dd] bg-[#fffaf9]' : 'border-[#f0e9e4]'} p-2 md:p-3 rounded-xl md:rounded-2xl flex items-center justify-between shadow-sm text-[#7d6f64] gap-2 transition-colors">
+            <div class="flex items-center gap-2 overflow-hidden flex-1">
+                <label title="チェックを入れるとSkill Filterから除外されます" class="shrink-0 cursor-pointer flex items-center">
+                    <input type="checkbox" ${s.exclude ? 'checked' : ''} onchange="toggleSkillExclude(${index}, this.checked)" class="accent-[#e5989b] w-3 h-3 md:w-4 md:h-4">
+                </label>
+                <span class="font-bold truncate ${s.exclude ? 'text-[#e5989b] line-through decoration-[#ffccd5]' : ''}" title="${s.name}">${s.name}</span>
+            </div>
+            <div class="flex items-center gap-1.5 shrink-0">
+                <span class="${s.exclude ? 'text-[#e5989b]' : 'text-[#d4a373]'} font-bold w-8 text-right">${s.value}%</span>
+                <button onclick="editSkill(${index})" class="text-[10px] hover:scale-110 transition-transform bg-[#f0e9e4] rounded-full w-6 h-6 flex items-center justify-center" title="編集">✏️</button>
+                <button onclick="deleteSkill(${index})" class="text-[10px] hover:scale-110 transition-transform bg-[#fae1dd] rounded-full w-6 h-6 flex items-center justify-center" title="削除">🗑️</button>
+            </div>
+        </div>
+    `).join("") || "";
+
+    sEl.innerHTML = skillsHtml + `
+        <button onclick="addSkill()" class="border-2 border-dashed border-[#dcd0c9] bg-transparent hover:bg-[#f7f3f0] text-[#a89a8e] font-bold p-2 md:p-3 rounded-xl md:rounded-2xl flex items-center justify-center shadow-sm transition-colors gap-1 h-full min-h-[44px]">
+            ＋ 技能を追加
+        </button>
+    `;
+}
+
+// ==========================================
+// キャラシ作成ツールのロジック
+// ==========================================
+const baseSkills = {
+    "回避": 0, "キック": 25, "組みつき": 25, "こぶし/パンチ": 50, "頭突き": 10, "投擲": 25, "マーシャルアーツ": 1,
+    "拳銃": 20, "サブマシンガン": 15, "ショットガン": 30, "マシンガン": 15, "ライフル": 25,
+    "応急手当": 30, "鍵開け": 1, "隠す": 15, "隠れる": 10, "聞き耳": 25, "忍び歩き": 10, "写真術": 10,
+    "精神分析": 1, "追跡": 10, "登攀": 40, "図書館": 25, "目星": 25,
+    "運転(自動車)": 20, "機械修理": 20, "重機械操作": 1, "乗馬": 5, "水泳": 25, "製作": 5, "操縦": 1, "跳躍": 25, "電気修理": 10, "ナビゲート": 10, "変装": 1,
+    "言いくるめ": 5, "信用": 15, "説得": 15, "値切り": 5, "母国語": 0,
+    "医学": 5, "オカルト": 5, "化学": 1, "クトゥルフ神話": 0, "芸術": 5, "経理": 10, "考古学": 1, "コンピューター": 1,
+    "心理学": 5, "人類学": 1, "生物学": 1, "地質学": 1, "電子工学": 1, "天文学": 1, "博物学": 10, "物理学": 1, "法律": 5, "薬学": 1, "歴史": 20
+};
+
+const fEdu20 = s => ({ v: s.EDU * 20, t: "計算式: EDU×20" });
+const fAppPow = s => s.APP >= s.POW ? { v: s.EDU*10+s.APP*10, t: "計算式: EDU×10 ＋ APP×10" } : { v: s.EDU*10+s.POW*10, t: "計算式: EDU×10 ＋ POW×10" };
+const fDexStr = s => s.DEX >= s.STR ? { v: s.EDU*10+s.DEX*10, t: "計算式: EDU×10 ＋ DEX×10" } : { v: s.EDU*10+s.STR*10, t: "計算式: EDU×10 ＋ STR×10" };
+const fEduApp = s => s.EDU*20 >= s.EDU*10+s.APP*10 ? { v: s.EDU*20, t: "計算式: EDU×20" } : { v: s.EDU*10+s.APP*10, t: "計算式: EDU×10 ＋ APP×10" };
+const fDex = s => ({ v: s.EDU*10+s.DEX*10, t: "計算式: EDU×10 ＋ DEX×10" });
+const fStr = s => ({ v: s.EDU*10+s.STR*10, t: "計算式: EDU×10 ＋ STR×10" });
+const fCon = s => ({ v: s.EDU*10+s.CON*10, t: "計算式: EDU×10 ＋ CON×10" });
+const fPow = s => ({ v: s.EDU*10+s.POW*10, t: "計算式: EDU×10 ＋ POW×10" });
+const fApp = s => ({ v: s.EDU*10+s.APP*10, t: "計算式: EDU×10 ＋ APP×10" });
+const fSiz = s => ({ v: s.EDU*10+s.SIZ*10, t: "計算式: EDU×10 ＋ SIZ×10" });
+const fDexPow = s => s.DEX >= s.POW ? { v: s.EDU*10+s.DEX*10, t: "計算式: EDU×10 ＋ DEX×10" } : { v: s.EDU*10+s.POW*10, t: "計算式: EDU×10 ＋ POW×10" };
+const fDexCon = s => s.DEX >= s.CON ? { v: s.EDU*10+s.DEX*10, t: "計算式: EDU×10 ＋ DEX×10" } : { v: s.EDU*10+s.CON*10, t: "計算式: EDU×10 ＋ CON×10" };
+const fConStr = s => s.CON >= s.STR ? { v: s.EDU*10+s.CON*10, t: "計算式: EDU×10 ＋ CON×10" } : { v: s.EDU*10+s.STR*10, t: "計算式: EDU×10 ＋ STR×10" };
+const fEduDex = s => s.EDU*20 >= s.EDU*10+s.DEX*10 ? { v: s.EDU*20, t: "計算式: EDU×20" } : { v: s.EDU*10+s.DEX*10, t: "計算式: EDU×10 ＋ DEX×10" };
+const fEduPow = s => s.EDU*20 >= s.EDU*10+s.POW*10 ? { v: s.EDU*20, t: "計算式: EDU×20" } : { v: s.EDU*10+s.POW*10, t: "計算式: EDU×10 ＋ POW×10" };
+const fAppDex = s => s.APP >= s.DEX ? { v: s.EDU*10+s.APP*10, t: "計算式: EDU×10 ＋ APP×10" } : { v: s.EDU*10+s.DEX*10, t: "計算式: EDU×10 ＋ DEX×10" };
+const fAppDexStr = s => { let m = Math.max(s.APP, s.DEX, s.STR); return { v: s.EDU*10+m*10, t: `計算式: EDU×10 ＋ ${m==s.APP?'APP':(m==s.DEX?'DEX':'STR')}×10` }; };
+const fEduDexStr = s => { let m = Math.max(s.EDU*2, s.DEX, s.STR); return { v: m==s.EDU*2?s.EDU*20:s.EDU*10+m*10, t: m==s.EDU*2?"計算式: EDU×20":`計算式: EDU×10 ＋ ${m==s.DEX?'DEX':'STR'}×10` }; };
+const fEduAppDex = s => { let m = Math.max(s.DEX, s.APP); return { v: s.EDU*10+m*10, t: `計算式: EDU×10 ＋ ${m==s.DEX?'DEX':'APP'}×10` }; };
+
+const jobs = {
+    "医師(基本)": { p: fEdu20, s: ["医学","応急手当","信用","心理学","精神分析","生物学","ほかの言語","任意の技能(1つ目)"] },
+    "エンジニア(基本)": { p: fEdu20, s: ["化学","機械修理","重機械操作","電気修理","地質学","図書館","物理学","任意の技能(1つ目)"] },
+    "エンターテイナー(基本)": { p: fEdu20, s: ["言いくるめ","回避","聞き耳","芸術","信用","心理学","変装","任意の技能(1つ目)"] },
+    "教授(基本)": { p: fEdu20, s: ["信用","心理学","説得","図書館","値切り","ほかの言語","選択技能(1つ目)","選択技能(2つ目)"] },
+    "狂信者(基本)": { p: fEdu20, s: ["隠す","隠れる","心理学","説得","図書館","選択技能(1つ目)","選択技能(2つ目)","任意の技能(1つ目)"] },
+    "軍士官(基本)": { p: fEdu20, s: ["経理","信用","心理学","説得","ナビゲート","値切り","法律","任意の技能(1つ目)"] },
+    "警官(基本)": { p: fEdu20, s: ["言いくるめ","応急手当","回避","組みつき","心理学","法律","選択技能(1つ目)","選択技能(2つ目)"] },
+    "刑事(基本)": { p: fEdu20, s: ["言いくるめ","聞き耳","心理学","説得","値切り","法律","目星","任意の技能(1つ目)"] },
+    "芸術家(基本)": { p: fEdu20, s: ["言いくるめ","芸術","写真術","心理学","製作","目星","歴史","任意の技能(1つ目)"] },
+    "古物研究家(基本)": { p: fEdu20, s: ["芸術","製作","図書館","値切り","ほかの言語","目星","歴史","任意の技能(1つ目)"] },
+    "作家(基本)": { p: fEdu20, s: ["オカルト","心理学","説得","図書館","ほかの言語","母国語","歴史","任意の技能(1つ目)"] },
+    "ジャーナリスト(基本)": { p: fEdu20, s: ["言いくるめ","写真術","心理学","説得","図書館","母国語","歴史","任意の技能(1つ目)"] },
+    "私立探偵(基本)": { p: fEdu20, s: ["言いくるめ","鍵開け","写真術","心理学","図書館","値切り","法律","任意の技能(1つ目)"] },
+    "スポークスマン(基本)": { p: fEdu20, s: ["言いくるめ","回避","信用","心理学","説得","変装","任意の技能(1つ目)"] },
+    "スポーツ選手(基本)": { p: fEdu20, s: ["回避","乗馬","水泳","跳躍","投擲","登攀","マーシャルアーツ","任意の技能(1つ目)"] },
+    "聖職者(基本)": { p: fEdu20, s: ["聞き耳","経理","心理学","説得","図書館","ほかの言語","歴史","任意の技能(1つ目)"] },
+    "超心理学者(基本)": { p: fEdu20, s: ["オカルト","人類学","写真術","心理学","図書館","ほかの言語","歴史","任意の技能(1つ目)"] },
+    "ディレッタント(基本)": { p: fEdu20, s: ["芸術","乗馬","ショットガン","信用","製作","ほかの言語","任意の技能(1つ目)","任意の技能(2つ目)"] },
+    "伝道者(基本)": { p: fEdu20, s: ["医学","応急手当","機械修理","芸術","説得","博物学","任意の技能(1つ目)"] },
+    "トライブ・メンバー(基本)": { p: fEdu20, s: ["オカルト","聞き耳","水泳","投擲","値切り","博物学","目星","任意の技能(1つ目)"] },
+    "農林業作業者(基本)": { p: fEdu20, s: ["応急手当","機械修理","重機械操作","製作","追跡","電気修理","博物学","任意の技能(1つ目)"] },
+    "パイロット(基本)": { p: fEdu20, s: ["機械修理","重機械操作","電気修理","操縦","天文学","ナビゲート","物理学","任意の技能(1つ目)"] },
+    "ハッカー/コンサルタント(基本)": { p: fEdu20, s: ["言いくるめ","コンピューター","電気修理","電子工学","図書館","物理学","ほかの言語","任意の技能(1つ目)"] },
+    "犯罪者(基本)": { p: fEdu20, s: ["言いくるめ","鍵開け","拳銃","忍び歩き","値切り","変装","目星","任意の技能(1つ目)"] },
+    "兵士(基本)": { p: fEdu20, s: ["応急手当","回避","隠す","機械修理","聞き耳","忍び歩き","ライフル","任意の技能(1つ目)"] },
+    "弁護士(基本)": { p: fEdu20, s: ["言いくるめ","信用","心理学","説得","図書館","値切り","法律","任意の技能(1つ目)"] },
+    "放浪者(基本)": { p: fEdu20, s: ["言いくるめ","隠れる","聞き耳","忍び歩き","心理学","値切り","博物学","任意の技能(1つ目)"] },
+    "ミュージシャン(基本)": { p: fEdu20, s: ["言いくるめ","聞き耳","芸術","製作","説得","心理学","値切り","任意の技能(1つ目)"] },
+
+    "アニマルセラピスト(2015)": { p: fAppPow, s: ["聞き耳","心理学","精神分析","生物学","跳躍","追跡","博物学","任意の技能(1つ目)"] },
+    "看護師(2015)": { p: fEdu20, s: ["科学","生物学","応急手当","言いくるめ","薬学","心理学","聞き耳","目星"] },
+    "救急救命士(2015)": { p: fAppPow, s: ["医学","応急手当","科学","鍵開け","機械修理","電気修理","登攀"] },
+    "形成外科医(2015)": { p: fDex, s: ["医学","応急手当","経理","心理学","説得","値切り","薬学","ほかの言語"] },
+    "外科医or歯科医(2015)": { p: fDex, s: ["医学","応急手当","経理","信用","生物学","説得","薬学","ほかの言語"] },
+    "精神科医(2015)": { p: fEduApp, s: ["医学","科学","心理学","精神分析","生物学","説得","薬学","ほかの言語"] },
+    "闇医者(2015)": { p: fEduDex, s: ["医学","応急手当","経理","説得","法律","薬学","ほかの言語","任意の技能(1つ目)"] },
+    "海上保安官(2015)": { p: fDexStr, s: ["機械修理","重機械操作","信用","操縦","登攀","ナビゲート","法律","サバイバル"] },
+    "科学捜査研究員(2015)": { p: fAppPow, s: ["医学","科学","コンピューター","写真術","人類学","生物学","法律","薬学"] },
+    "山岳救助隊員(2015)": { p: fAppPow, s: ["応急手当","聞き耳","跳躍","追跡","登攀","ナビゲート","サバイバル","ほかの言語"] },
+    "消防士(2015)": { p: fDexStr, s: ["運転(自動車)","応急手当","回避","機械修理","重機械操作","跳躍","投擲","登攀"] },
+    "芸術家(2015)": { p: fDexPow, s: ["言いくるめ","芸術","心理学","目星","歴史","選択技能(1つ目)","選択技能(2つ目)","選択技能(3つ目)"] },
+    "ダンサー(2015)": { p: fDexPow, s: ["回避","芸術(ダンス)","忍び歩き","跳躍","登攀","目星","任意の技能(1つ目)","任意の技能(2つ目)"] },
+    "デザイナー(2015)": { p: fEduPow, s: ["言いくるめ","芸術","コンピューター","心理学","図書館","目星","任意の技能(1つ目)","任意の技能(2つ目)"] },
+    "ファッション系芸術家(2015)": { p: fDexPow, s: ["言いくるめ","芸術","心理学","値切り","変装","目星","任意の技能(1つ目)","任意の技能(2つ目)"] },
+    "自衛官(陸上自衛隊)(2015)": { p: fDexStr, s: ["応急手当","回避","隠れる","サバイバル","近接戦技能(任意)","火器技能(任意)","選択技能(1つ目)","選択技能(2つ目)"] },
+    "自衛官(海上自衛隊)(2015)": { p: fDexStr, s: ["応急手当","重機械操作","水泳","操縦","ナビゲート","サバイバル","選択技能(1つ目)","選択技能(2つ目)"] },
+    "自衛官(自衛隊パイロット)(2015)": { p: fDex, s: ["機械修理","重機械操作","操縦","電気修理","天文学","ナビゲート","パラシュート","任意の技能(1つ目)"] },
+    "民間軍事会社メンバー(2015)": { p: fDexStr, s: ["回避","隠れる","忍び歩き","水泳","近接戦技能(任意)","火器技能(任意)","選択技能(1つ目)","選択技能(2つ目)"] },
+    "DEX系アスリート(2015)": { p: fDex, s: ["忍び歩き","回避","芸術(競技)","跳躍","投擲","登攀","選択技能(1つ目)","選択技能(2つ目)","選択技能(3つ目)"] },
+    "STR系アスリート(2015)": { p: fStr, s: ["回避","芸術(競技)","跳躍","投擲","登攀","選択技能(1つ目)","選択技能(2つ目)","選択技能(3つ目)"] },
+    "CON系アスリート(2015)": { p: fCon, s: ["回避","芸術(競技)","跳躍","投擲","登攀","選択技能(1つ目)","選択技能(2つ目)","選択技能(3つ目)"] },
+    "冒険家教授(2015)": { p: fDexCon, s: ["応急手当","説得","跳躍","登攀","図書館","ほかの言語","専門技能(1つ目)","専門技能(2つ目)"] },
+    "評論家(2015)": { p: fEdu20, s: ["信用","心理学","説得","図書館","値切り","母国語","専門技能(1つ目)","専門技能(2つ目)"] },
+    "アイドル、音楽タレント(2015)": { p: fApp, s: ["言いくるめ","芸術(歌唱)","芸術(ダンス)","心理学","説得","変装","任意の技能(1つ目)","任意の技能(2つ目)"] },
+    "アナウンサー(2015)": { p: fEduApp, s: ["言いくるめ","信用","心理学","説得","芸術(アナウンス)","図書館","母国語","任意の技能(1つ目)"] },
+    "コメディアン(2015)": { p: fDex, s: ["言いくるめ","聞き耳","心理学","芸術(物語)","芸術(演劇)","変装","任意の技能(1つ目)","任意の技能(2つ目)"] },
+    "スポーツタレント(2015)": { p: fConStr, s: ["言いくるめ","心理学","芸術(演劇)","跳躍","変装","素手の戦闘技能","任意の技能(1つ目)","任意の技能(2つ目)"] },
+    "コメンテーター(2015)": { p: fEduApp, s: ["言いくるめ","聞き耳","信用","心理学","説得","図書館","値切り","専門技能(1つ目)"] },
+    "ネットタレント(2015)": { p: fDex, s: ["芸術","コンピューター","心理学","説得","電気修理","任意の技能(1つ目)","任意の技能(2つ目)","任意の技能(3つ目)"] },
+    "俳優(2015)": { p: fApp, s: ["言いくるめ","運転(自動車)","芸術(演劇)","心理学","説得","変装","任意の技能(1つ目)","任意の技能(2つ目)"] },
+    "プロデューサー、マネージャー(2015)": { p: fPow, s: ["言いくるめ","運転(自動車)","隠れる","聞き耳","忍び歩き","値切り","法律","任意の技能(1つ目)"] },
+    "ゴーストハンター(2015)": { p: fDex, s: ["オカルト","科学","機械修理","写真術","生物学","説得","電気修理","物理学"] },
+    "占い師、霊媒師(2015)": { p: fAppPow, s: ["言いくるめ","オカルト","芸術(演劇)","信用","心理学","説得","値切り","任意の技能(1つ目)"] },
+    "執事、メイド(2015)": { p: fEdu20, s: ["言いくるめ","応急手当","聞き耳","芸術","経理","心理学","目星","ほかの言語"] },
+    "セールスマン(2015)": { p: fAppPow, s: ["言いくるめ","運転(自動車)","芸術(演技)","経理","心理学","説得","値切り","任意の技能(1つ目)"] },
+    "対面接客業(2015)": { p: fAppPow, s: ["言いくるめ","回避","聞き耳","経理","心理学","説得","値切り","目星"] },
+    "メカニック(2015)": { p: fEdu20, s: ["製作","登攀","運転(自動車)","電気修理","機械修理","重機械操作","任意の技能(1つ目)","任意の技能(2つ目)"] },
+    "料理人(2015)": { p: fDex, s: ["科学","製作(料理)","生物学","博物学","目星","ほかの言語","歴史","選択技能(1つ目)"] },
+    "ギャンブラー(2015)": { p: fAppDex, s: ["言いくるめ","隠す","聞き耳","芸術(演劇)","経理","心理学","目星","任意の技能(1つ目)"] },
+    "経済犯罪者(2015)": { p: fEdu20, s: ["言いくるめ","経理","コンピューター","信用","心理学","説得","値切り","法律"] },
+    "ストリート･ローグ(2015)": { p: fDexStr, s: ["言いくるめ","隠れる","心理学","目星","選択技能(1つ目)","選択技能(2つ目)","選択技能(3つ目)","選択技能(4つ目)"] },
+    "ネット犯罪者(2015)": { p: fEdu20, s: ["コンピューター","心理学","芸術(ハッキング)","製作(ウイルス)","図書館","法律","任意の技能(1つ目)","任意の技能(2つ目)"] },
+    "用心棒(2015)": { p: fDexStr, s: ["鍵開け","隠れる","忍び歩き","心理学","追跡","変装","近接戦技能(任意)","火器技能(任意)"] },
+    "公選職(2015)": { p: fApp, s: ["言いくるめ","聞き耳","芸術(握手)","心理学","説得","法律","歴史","母国語"] },
+    "人間山脈(2015)": { p: fSiz, s: ["投擲","武道","近接戦技能(1つ目)","近接戦技能(2つ目)","任意の技能(1つ目)","任意の技能(2つ目)","任意の技能(3つ目)"] },
+    "テストプレイヤー(2015)": { p: fDex, s: ["言いくるめ","聞き耳","芸術(ゲーム)","コンピューター","電気修理","値切り","任意の技能(1つ目)","任意の技能(2つ目)"] },
+    "ビデオジャーナリスト(2015)": { p: fDex, s: ["言いくるめ","隠す","写真術","電気修理","法律","選択技能(1つ目)","選択技能(2つ目)"] },
+    "医師(2010改訂)": { p: fEdu20, s: ["医学","応急手当","経理","信用","生物学","説得","薬学","ほかの言語"] },
+    "エンジニア(2010改訂)": { p: fEdu20, s: ["機械修理","コンピューター","重機械操作","電気修理","図書館","物理学","ほかの言語","選択技能"] },
+    "警官、刑事(2010改訂)": { p: fEduDexStr, s: ["言いくるめ","聞き耳","心理学","説得","追跡","法律","目星","選択技能"] },
+    "古物研究家(2010改訂)": { p: fEdu20, s: ["芸術","コンピューター","製作","図書館","値切り","ほかの言語","目星","歴史"] },
+    "コンピューター技術者(2010改訂)": { p: fEdu20, s: ["言いくるめ","経理","コンピューター","電気修理","電子工学","図書館","物理学","ほかの言語"] },
+    "作家(2010改訂)": { p: fEdu20, s: ["オカルト","芸術","心理学","説得","図書館","ほかの言語","母国語","歴史"] },
+    "ジャーナリスト(2010改訂)": { p: fEdu20, s: ["言いくるめ","写真術","心理学","説得","図書館","母国語","ほかの言語","歴史"] },
+    "宗教家(2010改訂)": { p: fEdu20, s: ["オカルト","聞き耳","経理","心理学","説得","図書館","歴史","選択技能"] },
+    "商店主、店員(2010改訂)": { p: fEduAppDex, s: ["言いくるめ","聞き耳","経理","心理学","信用","値切り","選択技能","商品知識"] },
+    "私立探偵(2010改訂)": { p: fEduDexStr, s: ["言いくるめ","鍵開け","心理学","追跡","図書館","法律","目星","選択技能"] },
+    "水産業従事者(2010改訂)": { p: fDex, s: ["機械修理","重機械操作","水泳","操縦","天文学","ナビゲート","博物学","目星"] },
+    "大学教授(2010改訂)": { p: fEdu20, s: ["信用","心理学","説得","図書館","値切り","ほかの言語","専門技能(1つ目)","専門技能(2つ目)"] },
+    "タレント(2010改訂)": { p: fEdu20, s: ["言いくるめ","聞き耳","信用","心理学","説得","芸術","変装","ほかの言語"] },
+    "超心理学者(2010改訂)": { p: fEdu20, s: ["オカルト","人類学","写真術","心理学","精神分析","図書館","ほかの言語","歴史"] },
+    "ディレッタント(2010改訂)": { p: fEduApp, s: ["運転(自動車)","芸術","信用","図書館","法律","ほかの言語","選択技能(1つ目)","選択技能(2つ目)"] },
+    "ドライバー(2010改訂)": { p: fDex, s: ["運転(自動車)","機械修理","聞き耳","重機械操作","電気修理","ナビゲート","値切り","目星"] },
+    "農林業作業者(2010改訂)": { p: fDexStr, s: ["応急手当","機械修理","重機械操作","製作","追跡","電気修理","博物学","選択技能"] },
+    "パイロット(2010改訂)": { p: fDex, s: ["機械修理","重機械操作","電気修理","操縦","天文学","ナビゲート","物理学","ほかの言語"] },
+    "ビジネスマン(2010改訂)": { p: fEdu20, s: ["言いくるめ","経理","コンピューター","信用","説得","値切り","法律","ほかの言語"] },
+    "法律家(弁護士)(2010改訂)": { p: fEdu20, s: ["言いくるめ","経理","信用","心理学","説得","図書館","値切り","法律"] },
+    "暴力団団員(2010改訂)": { p: fAppPow, s: ["言いくるめ","隠す","芸術","心理学","値切り","目星","選択技能(1つ目)","選択技能(2つ目)"] },
+    "放浪者(2010改訂)": { p: fAppDexStr, s: ["言いくるめ","隠れる","聞き耳","忍び歩き","心理学","値切り","目星","選択技能"] },
+    "ミュージシャン(2010改訂)": { p: fDex, s: ["言いくるめ","聞き耳","芸術","製作","説得","心理学","値切り","ほかの言語"] },
+    "メンタルセラピスト(2010改訂)": { p: fEdu20, s: ["言いくるめ","芸術","信用","心理学","精神分析","説得","法律","ほかの言語"] }
+};
+
+let maxJobPoints = 0;
+
+function roll(n, s, add = 0) {
+    let total = add; for(let i=0; i<n; i++) total += Math.floor(Math.random() * s) + 1;
+    return total;
+}
+
+function rollAndSetup() {
+    let s = { STR: roll(3, 6), CON: roll(3, 6), POW: roll(3, 6), DEX: roll(3, 6), APP: roll(3, 6), SIZ: roll(2, 6, 6), INT: roll(2, 6, 6), EDU: roll(3, 6, 3) };
+    if (document.getElementById('chk_STR').checked) s.STR = Math.min(18, s.STR + 3);
+    if (document.getElementById('chk_CON').checked) s.CON = Math.min(18, s.CON + 3);
+    if (document.getElementById('chk_POW').checked) s.POW = Math.min(18, s.POW + 3);
+    if (document.getElementById('chk_DEX').checked) s.DEX = Math.min(18, s.DEX + 3);
+    if (document.getElementById('chk_APP').checked) s.APP = Math.min(18, s.APP + 3);
+    if (document.getElementById('chk_SIZ').checked) s.SIZ = Math.min(18, s.SIZ + 3);
+    if (document.getElementById('chk_INT').checked) s.INT = Math.min(18, s.INT + 3);
+    if (document.getElementById('chk_EDU').checked) s.EDU = Math.min(21, s.EDU + 3);
+
+    baseSkills["母国語"] = s.EDU * 5; baseSkills["回避"] = s.DEX * 2;
+
+    const sg = document.getElementById('gen-statsGrid'); sg.innerHTML = '';
+    for(let key in s) {
+        sg.innerHTML += `
+            <div class="bg-[#f0e9e4] border-2 border-[#e9e0d9] rounded-2xl p-2 text-center">
+                <div class="text-xs font-bold text-[#a09385]">${key}</div>
+                <div class="text-xl font-bold text-[#d4a373]">${s[key]}</div>
+            </div>`;
+    }
+
+    const hp = Math.ceil((s.CON + s.SIZ)/2);
+    let ss = s.STR + s.SIZ; let db = "0";
+    if(ss<=12) db="-1d6"; else if(ss<=16) db="-1d4"; else if(ss<=24) db="なし"; else if(ss<=32) db="+1d4"; else if(ss<=40) db="+1d6";
+    
+    document.getElementById('gen-derivedGrid').innerHTML = `
+        <div class="bg-[#f0e9e4] border-2 border-[#e9e0d9] rounded-2xl p-2 text-center">
+            <div class="text-xs font-bold text-[#a09385]">HP</div>
+            <div class="text-xl font-bold text-[#d4a373]">${hp}</div>
+        </div>
+        <div class="bg-[#f0e9e4] border-2 border-[#e9e0d9] rounded-2xl p-2 text-center">
+            <div class="text-xs font-bold text-[#a09385]">MP / SAN</div>
+            <div class="text-xl font-bold text-[#d4a373]">${s.POW} / ${s.POW*5}</div>
+        </div>
+        <div class="bg-[#f0e9e4] border-2 border-[#e9e0d9] rounded-2xl p-2 text-center">
+            <div class="text-xs font-bold text-[#a09385]">ダメージボーナス(DB)</div>
+            <div class="text-xl font-bold text-[#d4a373]">${db}</div>
+        </div>
+    `;
+
+    const jobName = document.getElementById('gen-jobSelect').value;
+    const jobCalc = jobs[jobName].p(s); maxJobPoints = jobCalc.v;
+    document.getElementById('gen-resJobP').innerText = maxJobPoints; document.getElementById('gen-resFormula').innerText = jobCalc.t;
+
+    const tb = document.getElementById('gen-allocTbody'); tb.innerHTML = '';
+
+    jobs[jobName].s.forEach((skillName) => {
+        let isAny = skillName.includes("任意") || skillName.includes("選択") || skillName.includes("専門") || skillName.includes("近接") || skillName.includes("火器");
+        let baseVal = baseSkills[skillName] !== undefined ? baseSkills[skillName] : (isAny ? 1 : 1);
+        
+        let tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td class="p-2 border-r border-b border-[#e9e0d9]">
+                ${isAny ? `<input type="text" class="w-full bg-white border-2 border-[#e9e0d9] rounded-lg px-2 py-1 text-sm focus:outline-none focus:border-[#d4a373]" placeholder="${skillName}" oninput="autoUpdateBase(this)">` : `<span class="px-2 font-bold">${skillName}</span>`}
+            </td>
+            <td class="p-2 border-r border-b border-[#e9e0d9] text-center">
+                <input type="number" class="base-in w-14 bg-[#f0e9e4] border border-[#e9e0d9] rounded-md text-center py-1 font-bold text-[#a09385]" value="${baseVal}" min="0" readonly>
+            </td>
+            <td class="p-2 border-b border-[#e9e0d9] text-center">
+                <input type="number" class="target-in w-20 bg-white border-2 border-[#e9e0d9] rounded-lg text-center py-1 focus:outline-none focus:border-[#e5989b]" placeholder="自動" min="0" max="99">
+            </td>
+        `;
+        tb.appendChild(tr);
+    });
+
+    document.getElementById('gen-content').classList.remove('hidden'); document.getElementById('gen-resultArea').classList.add('hidden');
+}
+
+function autoUpdateBase(elem) {
+    let val = elem.value.trim(); let tr = elem.closest('tr'); let baseInput = tr.querySelector('.base-in');
+    if (val === "") { baseInput.value = 1; return; }
+    let foundBase = 1;
+    if (baseSkills[val] !== undefined) { foundBase = baseSkills[val]; } 
+    else { for (let key in baseSkills) { if (val.startsWith(key)) { foundBase = baseSkills[key]; break; } } }
+    baseInput.value = foundBase;
+}
+
+function runAllocation() {
+    let remainingP = maxJobPoints;
+    const rows = document.querySelectorAll('#gen-allocTbody tr');
+    let skillsToAuto = []; let finalResults = [];
+
+    rows.forEach(r => {
+        let sNameInput = r.querySelector('input[type="text"]');
+        let sName = sNameInput ? (sNameInput.value || sNameInput.placeholder) : r.querySelector('span.font-bold').innerText;
+        let base = parseInt(r.querySelector('.base-in').value) || 0;
+        let targetInput = r.querySelector('.target-in').value;
+        
+        if (targetInput !== "") {
+            let target = parseInt(targetInput); if(target < base) target = base;
+            let cost = target - base; remainingP -= cost;
+            finalResults.push({ name: sName, base: base, add: cost, total: target, isFixed: true });
+        } else {
+            skillsToAuto.push({ name: sName, base: base });
+        }
+    });
+
+    if (remainingP < 0) { alert(`ポイントが足りません！ (オーバー分: ${Math.abs(remainingP)}P)\n目標値を下げてください。`); return; }
+
+    const policy = document.getElementById('gen-allocPolicy').value;
+    
+    // ... (runAllocation関数の途中)
+
+    if (skillsToAuto.length > 0) {
+        if (policy === 'even') {
+            let baseAdd = Math.floor(remainingP / skillsToAuto.length); let mod = remainingP % skillsToAuto.length;
+            skillsToAuto.forEach((sk, i) => {
+                // 上限を99から80に変更
+                let add = baseAdd + (i < mod ? 1 : 0); if (sk.base + add > 80) { add = 80 - sk.base; }
+                finalResults.push({ name: sk.name, base: sk.base, add: add, total: sk.base + add, isFixed: false }); remainingP -= add;
+            });
+        } else if (policy === 'five') {
+            skillsToAuto.forEach(sk => {
+                let current = sk.base; let add = 0;
+                // 上限を99から80に変更
+                while(remainingP >= 5 && current + 5 <= 80) { add += 5; current += 5; remainingP -= 5; }
+                finalResults.push({ name: sk.name, base: sk.base, add: add, total: current, isFixed: false });
+            });
+        } else if (policy === 'odd') {
+            const targets = [11, 33, 55, 77]; // 99は上限を超えるため除外
+            skillsToAuto.forEach(sk => sk.add = 0); let canAdd = true;
+            while (canAdd && remainingP > 0) {
+                canAdd = false;
+                for (let sk of skillsToAuto) {
+                    let currentTotal = sk.base + sk.add; let nextTarget = targets.find(t => t > currentTotal);
+                    if (nextTarget) {
+                        let cost = nextTarget - currentTotal;
+                        if (remainingP >= cost) { sk.add += cost; remainingP -= cost; canAdd = true; }
+                    }
+                }
+            }
+            skillsToAuto.forEach(sk => { finalResults.push({ name: sk.name, base: sk.base, add: sk.add, total: sk.base + sk.add, isFixed: false }); });
+        }
+    }
+
+    // 残りポイントを分配する際の処理も80上限にする
+    if (remainingP > 0 && skillsToAuto.length > 0) {
+        for (let sk of finalResults.filter(f => !f.isFixed)) { while (remainingP > 0 && sk.total < 80) { sk.add += 1; sk.total += 1; remainingP -= 1; } }
+    }
+
+// ...
+
+    const resArea = document.getElementById('gen-resultList'); const warnArea = document.getElementById('gen-remWarningArea');
+    resArea.innerHTML = ''; warnArea.innerHTML = '';
+    
+    if (remainingP > 0) {
+        warnArea.innerHTML = `<div class="bg-[#fae1dd] text-[#e5989b] font-bold p-3 rounded-xl text-sm mb-4 border-2 border-[#f2ccc4]">⚠️ 99上限などの理由により、職業Pが <b>${remainingP} P</b> 余りました。<br>趣味技能の底上げなどに手動で割り振ってください。</div>`;
+    }
+
+    finalResults.forEach(r => {
+        let badge = r.isFixed ? `<span class="bg-[#d4a373] text-white px-2 py-0.5 rounded-full text-[10px] ml-2 align-middle">固定</span>` : '';
+        resArea.innerHTML += `
+            <div class="flex items-center justify-between bg-[#f0e9e4] p-3 rounded-xl border-l-4 border-[#e5989b]">
+                <div class="font-bold text-[#5d534a]">${r.name} ${badge} <span class="ml-2 text-xl text-[#d4a373]">${r.total}</span></div>
+                <span class="text-xs text-[#a09385] font-bold">初期 ${r.base} ＋ 振 ${r.add}</span>
+            </div>
+        `;
+    });
+
+    document.getElementById('gen-resultArea').classList.remove('hidden');
+}
+
+function removeCurrentImage() {
+    if (!selectedExplorer || !selectedExplorer.images || selectedExplorer.images.length === 0) return;
+    
+    if (confirm("この立ち絵画像を削除しますか？")) {
+        // 画像リストから現在のインデックスを削除
+        selectedExplorer.images.splice(selectedExplorer.imageIndex, 1);
+        
+        // インデックスを調整
+        if (selectedExplorer.imageIndex >= selectedExplorer.images.length) {
+            selectedExplorer.imageIndex = Math.max(0, selectedExplorer.images.length - 1);
+        }
+        
+        // 最初の画像をデフォルトとして更新
+        selectedExplorer.image = selectedExplorer.images[selectedExplorer.imageIndex] || "";
+        
+        // 保存と表示更新
+        save();
+        render();
+        
+        // モーダル内の表示を更新
+        if (selectedExplorer.images.length > 0) {
+            document.getElementById("detailImage").src = selectedExplorer.images[selectedExplorer.imageIndex];
+        } else {
+            document.getElementById("detailImage").src = "";
+        }
+        
+        alert("画像を削除しました。");
+    }
+}
+
+</script>
+</body>
+</html>
